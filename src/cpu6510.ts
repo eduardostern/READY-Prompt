@@ -175,6 +175,18 @@ export class Cpu6510 {
     this.next = 0;
   }
 
+  /** The next step serves an interrupt rather than the instruction at PC. */
+  get interruptPending(): boolean { return this.next !== 0 || this.jammed; }
+
+  /** RTS done by a trap: back to the caller of the routine PC is in. */
+  returnFromTrap(read: (a: number) => number): void {
+    this.s = (this.s + 1) & 0xff;
+    const lo = read(0x100 | this.s);
+    this.s = (this.s + 1) & 0xff;
+    const hi = read(0x100 | this.s);
+    this.pc = ((lo | (hi << 8)) + 1) & 0xffff;
+  }
+
   /** Runs one instruction, or the interrupt the last one decided on. */
   step(): void {
     if (this.jammed) { this.rd(0xffff); return; }

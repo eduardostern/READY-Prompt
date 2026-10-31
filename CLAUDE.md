@@ -38,6 +38,7 @@ Run `npx tsc --noEmit` and `npm test` before every commit.
 | `src/c64/keyboard.ts`, `legend.ts` | 8 × 8 matrix, PC keys by character, `KeyInput`; the on-screen keyboard's caps |
 | `src/c64/basic.ts` | Listing → tokens (first keyword in table order, magazine `{codes}`) → .prg; `detokenize` |
 | `src/c64/prg.ts` | `injectPrg` (bytes + BASIC pointers, as LOAD leaves them), `.p00` |
+| `src/c64/tape.ts` | `Tape`: pulse timeline (.tap v0/v1, or .t64 files encoded as the KERNAL writes them), KERNAL-format files decoded with their pulse ranges; `record` for SAVE |
 | `src/main.ts` | Page wiring, frame loop, keys, joystick (arrows + Right Ctrl), gamepad, program slot, shelf, listing dialog, `?prg=`/`?file=` links |
 | `src/ui/` | From K-Prompt: audio, power switch, sound output, confirm dialog; `store.ts` (IndexedDB `ready-prompt`: shelf, tape, disk:n, cart, quick) |
 | `src/roms/` | BASIC 901226-01, KERNAL 901227-03, characters 901225-01 (see its README) |
@@ -72,6 +73,14 @@ Run `npx tsc --noEmit` and `npm test` before every commit.
   (E5CDh-E5D5h) with nothing typed: programs go in after the boot.
 - Joystick bits (1 = pressed): up 1, down 2, left 4, right 8, fire 16;
   port 2 is CIA1 port A (shared with the keyboard columns), port 1 port B.
+- Tape: pulses go to CIA1 FLAG while PLAY is down (port bit 4 reads 0)
+  and the motor runs (bit 5 an output, low). Traps on the KERNAL's LOAD
+  (F4A5h) and SAVE (F5EDh) for device 1 load/record a file at once and
+  move the tape past it, so a turbo loader after it reads its own pulses
+  in real time. After FOUND the KERNAL waits 8 s or for C= in the matrix
+  (not the keyboard buffer: tape I/O runs with interrupts off).
+- Traps run only when the KERNAL is mapped at E000h and no interrupt is
+  due (`cpu.interruptPending`); they return with `cpu.returnFromTrap`.
 - Typing goes into the keyboard buffer (0277h, count C6h); both cases type
   plain letters (listings are upper case).
 

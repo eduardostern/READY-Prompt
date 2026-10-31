@@ -13,6 +13,7 @@ import { Cia } from './cia';
 import { KEYS, Matrix, type Key } from './keyboard';
 import { BASIC, CHAROM, cpuMap, IO, KERNAL, NONE, RAM, ROMH, ROML, vicChip } from './pla';
 import { Sid, type SidModel } from './sid';
+import { Tape } from './tape';
 import { NTSC, PAL, Vic, type VicTiming } from './vic';
 
 export type Model = 'pal' | 'ntsc';
@@ -82,8 +83,18 @@ export class C64 {
   /** Things to do once BASIC waits at READY. (a program to drop in). */
   private onReady: (() => void)[] = [];
 
-  /** Cassette: the play button is down (port bit 4 reads 0). */
-  tapeSense = false;
+  /** The cassette in the Datasette. */
+  tape: Tape | null = null;
+  /** PLAY is down (the port's sense bit reads 0). */
+  tapePlay = false;
+  /** LOAD and SAVE on tape happen at once through the KERNAL traps. */
+  fastTape = true;
+  /** The motor runs (port bit 5 low as an output). */
+  private motorOn = false;
+
+  /** KERNAL entry points handled here when the KERNAL is mapped in: address → handler. */
+  private readonly trapAt = new Uint8Array(0x10000);
+  private readonly traps = new Map<number, () => boolean>();
 
   constructor(roms: Roms) {
     this.basic = roms.basic;
@@ -101,7 +112,15 @@ export class C64 {
       readA: out => (out & 0x3f) | (out & 0x10 ? 0 : 0x40) | (out & 0x20 ? 0 : 0x80),
       readB: out => out,
     });
+    this.addTrap(0xf4a5, () => this.loadTrap());
+    this.addTrap(0xf5ed, () => this.saveTrap());
     this.reset(true);
+  }
+
+  /** Runs `fn` instead of the KERNAL at `addr` (when it returns true). */
+  addTrap(addr: number, fn: () => boolean): void {
+    this.trapAt[addr] = 1;
+    this.traps.set(addr, fn);
   }
 
   setModel(m: Model): void {
@@ -128,6 +147,7 @@ export class C64 {
       for (let a = 0; a < 0x400; a++) this.colorRam[a] = (a * 7) & 15;
     }
     this.ddr = 0; this.data = 0;
+    this.motorOn = false;
     this.updateMode();
     this.vic.reset();
     this.sid.reset();
@@ -161,14 +181,15 @@ export class C64 {
   private portRead(): number {
     // Bits 0-2 are pulled up, bit 4 is the cassette sense (0 = a button down),
     // bit 5 the motor (pulled low when it is an input).
-    const inputs = 0x07 | (this.tapeSense ? 0 : 0x10);
+    const inputs = 0x07 | (this.tapePlay ? 0 : 0x10);
     return (this.data & this.ddr) | (inputs & ~this.ddr) & 0xff;
   }
 
-  /** The cassette motor is on (port bit 5 low). */
-  get motor(): boolean {
-    return !(((this.data & this.ddr) | (~this.ddr & 0x20)) & 0x20) && !!(this.ddr & 0x20);
-  }
+  /** The cassette motor is on (port bit 5 an output, and low). */
+  get motor(): boolean { return this.motorOn; }
+
+  /** The Datasette is turning: PLAY down and the motor on. */
+  get tapeRunning(): boolean { return this.motorOn && this.tapePlay && !!this.tape && !this.tape.atEnd; }
 
   // ---- The bus ----
 
@@ -178,6 +199,7 @@ export class C64 {
     this.cia1.tick();
     this.cia2.tick();
     this.cart?.tick?.();
+    if (this.motorOn && this.tapePlay && this.tape && this.tape.tick()) this.cia1.flag();
     this.cycles++;
     if (this.cycles >= this.todNext) {
       this.todNext += this.todPeriod;
@@ -218,6 +240,7 @@ export class C64 {
     if (a < 2) {
       if (a === 0) this.ddr = v; else this.data = v;
       this.ram[a] = this.vic.lastBus;
+      this.motorOn = !!(this.ddr & 0x20) && !(this.data & 0x20);
       this.updateMode();
       return;
     }
@@ -272,7 +295,12 @@ export class C64 {
   /** Runs until the VIC finishes the frame it is drawing. */
   runFrame(): void {
     const f = this.vic.frameCount;
-    while (this.vic.frameCount === f) this.cpu.step();
+    const cpu = this.cpu;
+    while (this.vic.frameCount === f) {
+      const pc = cpu.pc;
+      if (this.trapAt[pc] && !cpu.interruptPending && this.kernalIn() && this.traps.get(pc)!()) continue;
+      cpu.step();
+    }
     if (this.onReady.length && this.atPrompt) this.onReady.shift()!();
     this.feedTyping();
     this.sid.advanceTo(this.cycles);
@@ -291,6 +319,49 @@ export class C64 {
   /** Runs about `n` frames (for tests and fast-forward). */
   run(frames: number): void {
     for (let i = 0; i < frames; i++) this.runFrame();
+  }
+
+  /** The KERNAL ROM is what the CPU sees at E000h. */
+  private kernalIn(): boolean { return cpuMap[this.mode * 32 + 0xe * 2] === KERNAL; }
+
+  // ---- Tape traps ----
+
+  /** The file name LOAD/SAVE were given (FNLEN B7h, FNADR BBh). */
+  private fileName(): Uint8Array {
+    const len = this.ram[0xb7], at = this.ram[0xbb] | (this.ram[0xbc] << 8);
+    return this.ram.slice(at, at + len);
+  }
+
+  /** KERNAL LOAD (F4A5h) from the tape: the next matching file, at once. */
+  private loadTrap(): boolean {
+    if (this.ram[0xba] !== 1 || !this.fastTape || !this.tape) return false;
+    const f = this.tape.findFile(this.fileName());
+    if (!f) return false; // not in the KERNAL's format: let the KERNAL read it in real time
+    const verify = this.cpu.a !== 0;
+    const sa = this.ram[0xb9];
+    const at = f.type === 1 && sa === 0 ? this.ram[0xc3] | (this.ram[0xc4] << 8) : f.start;
+    const end = Math.min(0x10000, at + f.data.length);
+    if (!verify) this.ram.set(f.data.subarray(0, end - at), at);
+    this.ram[0xae] = end & 0xff; this.ram[0xaf] = (end >> 8) & 0xff;
+    this.ram[0x90] = 0;
+    this.tape.seek(f.pulseEnd);
+    this.cpu.x = end & 0xff; this.cpu.y = (end >> 8) & 0xff; this.cpu.c = 0;
+    this.cpu.returnFromTrap(a => this.ram[a]);
+    return true;
+  }
+
+  /** KERNAL SAVE (F5EDh) to the tape: written where the tape is. */
+  private saveTrap(): boolean {
+    if (this.ram[0xba] !== 1 || !this.fastTape || !this.tape) return false;
+    const start = this.ram[0xc1] | (this.ram[0xc2] << 8);
+    const end = this.ram[0xae] | (this.ram[0xaf] << 8);
+    if (end <= start) return false;
+    const type = this.ram[0xb9] & 1 ? 3 : 1;
+    this.tape.record(type, start, this.ram.slice(start, end), this.fileName());
+    this.ram[0x90] = 0;
+    this.cpu.c = 0;
+    this.cpu.returnFromTrap(a => this.ram[a]);
+    return true;
   }
 
   setKeys(keys: Iterable<Key>): void { this.keys.set(keys); }

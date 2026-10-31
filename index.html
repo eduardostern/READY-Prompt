@@ -36,6 +36,8 @@
               <option value="4">4x</option>
             </select>
           </label>
+          <label class="check"><input type="checkbox" id="fast-tape" /> Load tapes at once</label>
+          <label class="check"><input type="checkbox" id="turbo-tape" /> Fast-forward while a tape plays</label>
           <div class="btn-row">
             <button id="paste-open" class="key-btn" type="button" title="Paste a BASIC listing and RUN it">✎ Listing</button>
           </div>
@@ -76,6 +78,22 @@
               </div>
               <p class="note tape-note" id="deck-note"></p>
             </div>
+            <div class="tape" id="tape">
+              <span class="device-name">Tape</span>
+              <button class="cart" type="button" id="tape-load" title="Insert a tape (.tap, .t64)">
+                <span class="cart-label" id="tape-label">No tape: click or drop a .tap or .t64</span>
+              </button>
+              <span class="tape-pos" id="tape-pos"></span>
+              <div class="tape-keys">
+                <button type="button" id="tape-run" title="Reset, then LOAD and RUN the next program on the tape">▶ LOAD</button>
+                <button type="button" id="tape-play" title="PLAY: press or release the play key">⏯</button>
+                <button type="button" id="tape-rewind" title="Rewind">⏮</button>
+                <button type="button" id="tape-save" title="Download the tape (with what SAVE recorded on it) as .tap">⤓</button>
+                <button type="button" id="tape-blank" title="Insert a blank tape to SAVE onto">＋ Blank</button>
+                <button type="button" class="eject" id="tape-eject" title="Eject">⏏</button>
+              </div>
+            </div>
+            <input id="tape-file" type="file" accept=".tap,.t64,.zip" hidden />
             <input id="file" type="file" accept=".prg,.p00,.t64,.tap,.d64,.crt,.zip" hidden />
           </div>
 

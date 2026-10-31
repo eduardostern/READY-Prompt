@@ -18,7 +18,8 @@ import { audioContext } from './ui/audio';
 import { askConfirm } from './ui/confirm';
 import { waitForPower, warmUp } from './ui/power';
 import { SoundOut } from './ui/sound-out';
-import { loadShelf, shelve, type StoredFile, unshelve } from './ui/store';
+import { loadShelf, loadTape, saveTape, shelve, type StoredFile, unshelve } from './ui/store';
+import { Tape } from './c64/tape';
 
 const SAMPLE_RATE = 44100;
 const MAX_FILE = 4 * 1024 * 1024;
@@ -42,11 +43,13 @@ interface Settings {
   /** The port the arrow keys and gamepad drive: 2, 1, or 0 for none. */
   joystick: number;
   keyboard: boolean;
+  fastTape: boolean;
+  turboTape: boolean;
 }
 
 const DEFAULTS: Settings = {
   model: 'pal', speed: 1, smooth: false, scanlines: true, curve: true, flicker: false, humbar: false, autoPower: false,
-  volume: 70, sid: '6581', joystick: 2, keyboard: false,
+  volume: 70, sid: '6581', joystick: 2, keyboard: false, fastTape: true, turboTape: true,
 };
 
 function loadSettings(): Settings {
@@ -131,6 +134,7 @@ async function start(): Promise<void> {
   const applyLook = () => {
     for (const f of flags) document.body.classList.toggle(f, Boolean(settings[f]));
     sound.volume = settings.volume / 100;
+    c64.fastTape = settings.fastTape;
   };
   const bindCheck = (id: string, key: keyof Settings) => {
     const box = $<HTMLInputElement>(id);
@@ -143,6 +147,8 @@ async function start(): Promise<void> {
   };
   for (const f of flags) bindCheck(f, f);
   bindCheck('auto-power', 'autoPower');
+  bindCheck('fast-tape', 'fastTape');
+  bindCheck('turbo-tape', 'turboTape');
   const volume = $<HTMLInputElement>('volume');
   volume.value = String(settings.volume);
   volume.addEventListener('input', () => { settings.volume = Number(volume.value); save(); applyLook(); });
@@ -331,12 +337,66 @@ async function start(): Promise<void> {
     });
   };
 
+  // ---- the Datasette ---------------------------------------------------------
+
+  const tapeBox = $('tape');
+  const tapeLabel = $('tape-label');
+  const tapePos = $('tape-pos');
+  const showTape = () => {
+    const t = c64.tape;
+    tapeBox.classList.toggle('full', Boolean(t));
+    tapeBox.classList.toggle('playing', c64.tapePlay);
+    tapeLabel.textContent = t
+      ? `${t.name}${t.files.length ? ` · ${t.files.map(f => f.name || '""').slice(0, 4).join(', ')}${t.files.length > 4 ? '…' : ''}` : ''}`
+      : 'No tape: click or drop a .tap or .t64';
+    tapePos.textContent = t ? `${Math.round(t.progress * 100)}%` : '';
+  };
+  const storeTape = () => {
+    const t = c64.tape;
+    void saveTape(t ? { name: t.name, data: t.toTap() } : null);
+  };
+  const insertTape = (t: Tape, store = true) => {
+    c64.tape = t;
+    c64.tapePlay = false;
+    if (store) storeTape();
+    showTape();
+  };
+  /** Reset, then LOAD and RUN with PLAY down (the KERNAL wants it for real-time loads). */
+  const tapeLoad = async () => {
+    if (!c64.tape) return;
+    if (running) c64.reset(); else await powerOn();
+    c64.tapePlay = true;
+    c64.whenReady(() => c64.type('LOAD\rRUN\r'));
+    showTape();
+  };
+  const tapeFile = $<HTMLInputElement>('tape-file');
+  $('tape-load').addEventListener('click', () => tapeFile.click());
+  tapeFile.addEventListener('change', () => {
+    const f = tapeFile.files?.[0];
+    if (f) void readFile(f);
+    tapeFile.value = '';
+  });
+  $('tape-run').addEventListener('click', () => void tapeLoad());
+  $('tape-play').addEventListener('click', () => { c64.tapePlay = !c64.tapePlay; showTape(); });
+  $('tape-rewind').addEventListener('click', () => { c64.tape?.rewind(); showTape(); });
+  $('tape-save').addEventListener('click', () => {
+    const t = c64.tape;
+    if (t) download(t.name.replace(/\.(t64|tap)$/i, '') + '.tap', t.toTap());
+  });
+  $('tape-blank').addEventListener('click', () => { insertTape(Tape.blank()); c64.tapePlay = true; showTape(); });
+  $('tape-eject').addEventListener('click', () => { c64.tape = null; c64.tapePlay = false; storeTape(); showTape(); void showShelf(); });
+  const kept = await loadTape();
+  if (kept) {
+    try { insertTape(Tape.fromTap(kept.data, kept.name), false); } catch { void saveTape(null); }
+  }
+  showTape();
+
   const shelfList = $('shelf-list');
   const showShelf = async () => {
     const all = await loadShelf();
     shelfList.replaceChildren(...all.map(f => {
       const li = document.createElement('li');
-      if (program?.name === f.name) li.className = 'inserted';
+      if (program?.name === f.name || c64.tape?.name === f.name) li.className = 'inserted';
       const pick = document.createElement('button');
       pick.className = 'shelf-cart';
       pick.type = 'button';
@@ -376,6 +436,10 @@ async function start(): Promise<void> {
         showProgram();
         notice('');
         await runProgram(prg);
+      } else if (ext === 'tap' || ext === 't64') {
+        insertTape(ext === 'tap' ? Tape.fromTap(file.data, file.name) : Tape.fromT64(file.data, file.name));
+        notice('');
+        await tapeLoad();
       } else {
         throw new Error(`.${ext} files are not supported yet`);
       }
@@ -471,15 +535,23 @@ async function start(): Promise<void> {
     if (!running) { owed = 0; return; }
     pollPad();
     let ran = 0;
-    const most = 4 * settings.speed;
-    while (owed >= FRAME_MS / settings.speed && ran < most) {
-      owed -= FRAME_MS / settings.speed;
-      c64.runFrame();
-      const samples = c64.takeAudio();
-      if (settings.speed === 1) sound.play(samples);
-      ran++;
+    if (settings.turboTape && c64.tapeRunning) {
+      // While the tape turns, run as fast as the host allows (no sound).
+      const until = now + 12;
+      while (performance.now() < until && c64.tapeRunning) { c64.runFrame(); ran++; }
+      c64.takeAudio();
+      owed = 0;
+    } else {
+      const most = 4 * settings.speed;
+      while (owed >= FRAME_MS / settings.speed && ran < most) {
+        owed -= FRAME_MS / settings.speed;
+        c64.runFrame();
+        const samples = c64.takeAudio();
+        if (settings.speed === 1) sound.play(samples);
+        ran++;
+      }
+      if (ran === most) owed = 0; // the host fell behind: do not try to catch up
     }
-    if (ran === most) owed = 0; // the host fell behind: do not try to catch up
     if (ran) draw();
     statFrames += ran;
     if (now - statTime >= 1000) {
@@ -488,6 +560,8 @@ async function start(): Promise<void> {
       mhz.textContent = `${((f * t.cyclesPerLine * t.lines) / 1e6).toFixed(2)} MHz`;
       statFrames = 0;
       statTime = now;
+      if (c64.tape?.dirty) { c64.tape.dirty = false; storeTape(); }
+      showTape();
     }
   };
   requestAnimationFrame(loop);
