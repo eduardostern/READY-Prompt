@@ -42,6 +42,7 @@ Run `npx tsc --noEmit` and `npm test` before every commit.
 | `src/c64/disk.ts` | `.d64` (35/40 tracks): BAM, directory, sector chains, 1541 allocation (nearest to track 18, interleave 10), scratch, rename, format |
 | `src/c64/drive.ts` | Virtual 1541 behind the KERNAL's bus routines: channels, LOAD/SAVE, `$` as a BASIC program at 0401h, ,S,R/,P,W/,S,A, @0:, channel 15 (I N S R V, error message) |
 | `src/c64/cartridge.ts` | `.crt`: normal 8K/16K/Ultimax, Simons' BASIC, Ocean, Fun Play, System 3, Dinamic, Magic Desk, EasyFlash (RAM at DF00h, flash read-only); `makeCrt` builds one |
+| `src/c64/state.ts` | Save states: `grab`/`put` each chip's plain data (skip lists leave out wiring, ROMs, the frame); `.rdy` = magic + deflated JSON; `Rewind` (a state a second, 30 kept) |
 | `src/main.ts` | Page wiring, frame loop, keys, joystick (arrows + Right Ctrl), gamepad, program slot, shelf, listing dialog, `?prg=`/`?file=` links |
 | `src/ui/` | From K-Prompt: audio, power switch, sound output, confirm dialog; `store.ts` (IndexedDB `ready-prompt`: shelf, tape, disk:n, cart, quick) |
 | `src/roms/` | BASIC 901226-01, KERNAL 901227-03, characters 901225-01 (see its README) |
@@ -95,6 +96,11 @@ Run `npx tsc --noEmit` and `npm test` before every commit.
   its PLA mode). The KERNAL starts a cartridge with "CBM80" at 8004h;
   an Ultimax one (EasyFlash boots so) starts from its own reset vector
   in ROMH. Code that leaves Ultimax must run from RAM.
+- Save states must stay deterministic: tests/state.test.ts checks that a
+  restored machine runs on to the same cycle count, picture and sound. A
+  new field holding wiring or a reference goes in `SKIP` (state.ts).
+- Hotkeys are F9 (quick save), F10 (quick load), PgDn (rewind): F1-F8
+  are the C64's own keys, PgUp is RESTORE.
 - Typing goes into the keyboard buffer (0277h, count C6h); both cases type
   plain letters (listings are upper case).
 

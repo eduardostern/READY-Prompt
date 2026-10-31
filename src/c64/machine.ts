@@ -186,6 +186,14 @@ export class C64 {
     this.cpu.reset();
   }
 
+  /** After a save state went back in: what is derived from the state. */
+  afterStateLoad(): void {
+    this.updateMode();
+    this.typing = [];
+    this.onReady = [];
+    this.busDrive = null;
+  }
+
   /** Plugs in (or pulls out) a cartridge; the caller resets. */
   insert(cart: Cartridge | null): void {
     if (this.cart) this.cart.changed = undefined;

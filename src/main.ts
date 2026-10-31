@@ -18,9 +18,10 @@ import { audioContext } from './ui/audio';
 import { askConfirm } from './ui/confirm';
 import { waitForPower, warmUp } from './ui/power';
 import { SoundOut } from './ui/sound-out';
-import { loadCart, saveCart, loadDisk, saveDisk, loadShelf, loadTape, saveTape, shelve, type StoredFile, unshelve } from './ui/store';
+import { loadQuick, saveQuick, loadCart, saveCart, loadDisk, saveDisk, loadShelf, loadTape, saveTape, shelve, type StoredFile, unshelve } from './ui/store';
 import { Tape } from './c64/tape';
 import { D64, nameString } from './c64/disk';
+import { isState, loadState, Rewind, saveState } from './c64/state';
 import { cartridgeFromCrt, CRT_TYPES, type CrtCartridge } from './c64/cartridge';
 
 const SAMPLE_RATE = 44100;
@@ -87,6 +88,8 @@ async function start(): Promise<void> {
   if (settings.model !== 'pal') c64.setModel(settings.model);
   c64.setSidModel(settings.sid);
   const sound = new SoundOut(SAMPLE_RATE);
+  // A state every second, the last 30, to step back through.
+  const rewind = new Rewind();
   const keys = new KeyInput(held => c64.setKeys(held));
   keys.onRestore = down => { c64.restore = down; };
 
@@ -179,6 +182,7 @@ async function start(): Promise<void> {
   const powerOn = async () => {
     audioContext();
     c64.reset(true);
+    rewind.clear();
     sessionStorage.setItem('ready-prompt.warm', '1');
     await warmUp(wrap, settings.model === 'pal');
     running = true;
@@ -195,6 +199,7 @@ async function start(): Promise<void> {
   });
   $('reset').addEventListener('click', () => {
     c64.reset();
+    rewind.clear();
     if (!running) void powerOn();
   });
 
@@ -215,8 +220,13 @@ async function start(): Promise<void> {
     const t = e.target as HTMLElement | null;
     return Boolean(t?.closest('input, select, textarea, dialog'));
   };
+  const HOTKEYS: Record<string, () => void> = {
+    F9: () => void quickSave(), F10: () => void quickLoad(), PageDown: () => rewindBack(),
+  };
   window.addEventListener('keydown', e => {
-    if (typing(e) || e.metaKey || !running) return;
+    if (typing(e) || e.metaKey) return;
+    if (HOTKEYS[e.code]) { e.preventDefault(); if (!e.repeat) HOTKEYS[e.code](); return; }
+    if (!running) return;
     if (settings.joystick && STICK_KEYS[e.code]) {
       stick[STICK_KEYS[e.code]] = true;
       applyStick();
@@ -528,6 +538,13 @@ async function start(): Promise<void> {
         showProgram();
         notice('');
         await runProgram(prg);
+      } else if (ext === 'rdy' || isState(file.data)) {
+        await ensureOn();
+        loadState(c64, file.data);
+        settings.model = c64.model; model.value = c64.model; save(); applyModel();
+        rewind.clear();
+        notice(`${file.name}: the machine is back as it was.`);
+        return; // states are not shelved
       } else if (ext === 'crt') {
         await plugCart(file);
         notice('');
@@ -548,6 +565,32 @@ async function start(): Promise<void> {
       notice(`Could not load ${file.name}: ${(err as Error).message}`);
     }
   };
+
+  // ---- save states ----------------------------------------------------------
+
+  const stamp = () => `ready-prompt-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}`;
+  const quickSave = async () => {
+    if (!running) return;
+    await saveQuick({ name: c64.model, data: saveState(c64) });
+    notice('Quick save kept (F10 goes back to it).');
+  };
+  const quickLoad = async () => {
+    const q = await loadQuick();
+    if (!q) { notice('No quick save yet (F9 makes one).'); return; }
+    await ensureOn();
+    loadState(c64, q.data);
+    settings.model = c64.model; model.value = c64.model; save(); applyModel();
+    rewind.clear();
+    notice('Back at the quick save.');
+  };
+  const rewindBack = () => {
+    if (!running) return;
+    if (!rewind.back(c64)) notice('Nothing to rewind to yet.');
+  };
+  $('quick-save').addEventListener('click', () => void quickSave());
+  $('quick-load').addEventListener('click', () => void quickLoad());
+  $('rewind').addEventListener('click', rewindBack);
+  $('state-save').addEventListener('click', () => { if (running) download(`${stamp()}.rdy`, saveState(c64)); });
 
   const fileInput = $<HTMLInputElement>('file');
   const readFile = async (f: File) => open({ name: f.name, data: new Uint8Array(await f.arrayBuffer()) });
@@ -645,6 +688,7 @@ async function start(): Promise<void> {
       while (owed >= FRAME_MS / settings.speed && ran < most) {
         owed -= FRAME_MS / settings.speed;
         c64.runFrame();
+        rewind.tick(c64);
         const samples = c64.takeAudio();
         if (settings.speed === 1) sound.play(samples);
         ran++;

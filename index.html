@@ -39,6 +39,14 @@
           <label class="check"><input type="checkbox" id="fast-tape" /> Load tapes at once</label>
           <label class="check"><input type="checkbox" id="turbo-tape" /> Fast-forward while a tape plays</label>
           <div class="btn-row">
+            <button id="quick-save" class="key-btn" type="button" title="Keep the machine as it is now, in this browser (F9)">● Quick save</button>
+            <button id="quick-load" class="key-btn" type="button" title="Go back to the quick save (F10)">▶ Quick load</button>
+          </div>
+          <div class="btn-row">
+            <button id="rewind" class="key-btn" type="button" title="Go back about a second; again for more, up to 30 (PgDn)">↶ Rewind</button>
+            <button id="state-save" class="key-btn" type="button" title="Download the whole machine as a state file (.rdy); drop it here to go back to it">⤓ State</button>
+          </div>
+          <div class="btn-row">
             <button id="paste-open" class="key-btn" type="button" title="Paste a BASIC listing and RUN it">✎ Listing</button>
           </div>
           <dl class="readout">
@@ -133,7 +141,7 @@
             </div>
             <input id="disk-file" type="file" accept=".d64,.zip" hidden />
             <input id="tape-file" type="file" accept=".tap,.t64,.zip" hidden />
-            <input id="file" type="file" accept=".prg,.p00,.t64,.tap,.d64,.crt,.zip" hidden />
+            <input id="file" type="file" accept=".prg,.p00,.t64,.tap,.d64,.crt,.rdy,.zip" hidden />
           </div>
 
           <div class="kbd-wrap">
@@ -188,6 +196,8 @@
             <dt>Ctrl, Tab</dt><dd>CTRL</dd>
             <dt>Alt</dt><dd>C=</dd>
             <dt>F1–F8</dt><dd>F1–F8</dd>
+            <dt>F9 / F10</dt><dd>quick save / load</dd>
+            <dt>PgDn</dt><dd>rewind 1 s</dd>
           </dl>
         </aside>
       </main>
