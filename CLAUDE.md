@@ -35,9 +35,11 @@ Run `npx tsc --noEmit` and `npm test` before every commit.
 | `src/c64/cia.ts` | 6526: timers with the start/load/interrupt pipeline, TOD, ICR |
 | `src/c64/sid.ts` | SID 6581/8580: `advanceTo(cycle)` before each access; samples average sub-steps of ≤ 8 cycles; reSID's envelope (rate counter, exponential steps, ADSR bug); SVF filter; 6581 volume DC (digis) |
 | `src/c64/as65.ts` | Two-pass 6502 assembler on the CPU's opcode table (tests, built-in programs, AI board); `toPrg` |
-| `src/c64/keyboard.ts` | 8 × 8 matrix, PC keys by character, `KeyInput` |
-| `src/main.ts` | Page wiring, frame loop, keys |
-| `src/ui/` | From K-Prompt: audio, power switch, sound output, confirm dialog |
+| `src/c64/keyboard.ts`, `legend.ts` | 8 × 8 matrix, PC keys by character, `KeyInput`; the on-screen keyboard's caps |
+| `src/c64/basic.ts` | Listing → tokens (first keyword in table order, magazine `{codes}`) → .prg; `detokenize` |
+| `src/c64/prg.ts` | `injectPrg` (bytes + BASIC pointers, as LOAD leaves them), `.p00` |
+| `src/main.ts` | Page wiring, frame loop, keys, joystick (arrows + Right Ctrl), gamepad, program slot, shelf, listing dialog, `?prg=`/`?file=` links |
+| `src/ui/` | From K-Prompt: audio, power switch, sound output, confirm dialog; `store.ts` (IndexedDB `ready-prompt`: shelf, tape, disk:n, cart, quick) |
 | `src/roms/` | BASIC 901226-01, KERNAL 901227-03, characters 901225-01 (see its README) |
 
 ## C64 facts that are easy to get wrong
@@ -66,6 +68,10 @@ Run `npx tsc --noEmit` and `npm test` before every commit.
   255 steps of 9 cycles; OSC3 ($D41B) with noise is the games' random
   number source.
 - KERNAL 02A6h = 1 on PAL, 0 on NTSC (it counts raster lines at boot).
+- `C64.whenReady(fn)` runs fn once the KERNAL idles in its key loop
+  (E5CDh-E5D5h) with nothing typed: programs go in after the boot.
+- Joystick bits (1 = pressed): up 1, down 2, left 4, right 8, fire 16;
+  port 2 is CIA1 port A (shared with the keyboard columns), port 1 port B.
 - Typing goes into the keyboard buffer (0277h, count C6h); both cases type
   plain letters (listings are upper case).
 
@@ -80,3 +86,4 @@ Run `npx tsc --noEmit` and `npm test` before every commit.
   `playwright-cli` from the scratchpad, localStorage
   `ready-prompt.settings` = `{"autoPower":true}`. playwright's `type`
   presses keys faster than a C64 scans: type with `{delay: 90}`.
+  It only reads files in its working folder: copy uploads there.

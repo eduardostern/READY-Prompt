@@ -79,6 +79,8 @@ export class C64 {
 
   /** Text waiting to be typed into the keyboard buffer. */
   private typing: number[] = [];
+  /** Things to do once BASIC waits at READY. (a program to drop in). */
+  private onReady: (() => void)[] = [];
 
   /** Cassette: the play button is down (port bit 4 reads 0). */
   tapeSense = false;
@@ -134,6 +136,7 @@ export class C64 {
     this.cart?.reset?.();
     this.updateMode();
     this.typing = [];
+    this.onReady = [];
     // The power line: 50 Hz for PAL machines, 60 for NTSC.
     this.todPeriod = Math.round(this.clockHz / (this.model === 'pal' ? 50 : 60));
     this.todNext = this.cycles + this.todPeriod;
@@ -270,8 +273,19 @@ export class C64 {
   runFrame(): void {
     const f = this.vic.frameCount;
     while (this.vic.frameCount === f) this.cpu.step();
+    if (this.onReady.length && this.atPrompt) this.onReady.shift()!();
     this.feedTyping();
     this.sid.advanceTo(this.cycles);
+  }
+
+  /** The KERNAL is in its loop waiting for a key (E5CDh-E5D5h) with nothing typed. */
+  get atPrompt(): boolean {
+    return this.cpu.pc >= 0xe5cd && this.cpu.pc <= 0xe5d5 && !this.typing.length && this.ram[0xc6] === 0;
+  }
+
+  /** Runs `fn` at the end of the first frame BASIC is idle at its prompt (now, if it is). */
+  whenReady(fn: () => void): void {
+    this.onReady.push(fn);
   }
 
   /** Runs about `n` frames (for tests and fast-forward). */

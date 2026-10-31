@@ -517,40 +517,40 @@ body {
   touch-action: manipulation;
 }
 .kbd[hidden] { display: none; }
-.kbd-row { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 6px; }
-.kbd-row:nth-child(2) { padding-left: 2.5%; }
-.kbd-row:nth-child(3) { padding-left: 5%; }
+.kbd-row { display: flex; gap: 5px; }
 .kbd-key {
-  position: relative;
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  min-height: 52px;
-  padding: 2px 3px;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 40px;
+  padding: 2px 1px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
   border: 0;
-  border-radius: 6px;
-  background: linear-gradient(180deg, #4a4a52, #2f2f35);
-  box-shadow: 0 3px 0 #08080a, inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  color: #f0f0f0;
-  font: 8px/1.1 var(--sans);
+  border-radius: 5px;
+  color: #efe8dc;
+  /* the breadbin's brown keys */
+  background: linear-gradient(180deg, #5a4a3e, #3f342b);
+  box-shadow: 0 3px 0 #1b1612, inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  font: 700 13px var(--mono);
   cursor: pointer;
-  text-align: center;
-  overflow: hidden;
 }
-.kbd-key:active, .kbd-key.down { transform: translateY(2px); box-shadow: 0 1px 0 #08080a; }
-.kbd-key .above { color: #49c75a; font-size: 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.kbd-key .main { display: flex; align-items: center; justify-content: center; gap: 3px; }
-.kbd-key .main b { font: 700 15px var(--mono); }
-.kbd-key .main .sym { color: var(--stripe-red); font: 700 10px var(--mono); filter: brightness(1.4); }
-.kbd-key .kw { color: #fff; font-size: 7px; letter-spacing: 0.02em; }
-.kbd-key .below { color: #e05050; font-size: 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.kbd-key.wide { grid-column: span 1; }
-.kbd-key.latched { background: linear-gradient(180deg, #2c6f74, #1d4b4f); }
+.kbd-key.fn { background: linear-gradient(180deg, #b9b2a6, #8f887d); color: #2a241f; }
+.kbd-key .shifted { font-size: 9px; color: #d8c9b3; font-weight: 400; }
+.kbd-key.fn .shifted { color: #3c352e; }
+.kbd-key .label { font-size: 12px; line-height: 1.05; text-align: center; }
+.kbd-key.small .label { font-size: 8px; letter-spacing: 0.02em; }
+.kbd-key:active, .kbd-key.down { transform: translateY(2px); box-shadow: 0 1px 0 #1b1612; }
+.kbd-key.latched { background: linear-gradient(180deg, #5d58c9, #403b9a); }
 @media (max-width: 560px) {
   .kbd { padding: 6px; gap: 4px; }
-  .kbd-row { gap: 3px; }
-  .kbd-key { min-height: 44px; padding: 1px; }
-  .kbd-key .above, .kbd-key .below { display: none; }
-  .kbd-key .main b { font-size: 13px; }
+  .kbd-row { gap: 2px; }
+  .kbd-key { min-height: 40px; padding: 0; }
+  .kbd-key .shifted { display: none; }
+  .kbd-key .label { font-size: 10px; }
+  .kbd-key.small .label { font-size: 6px; }
 }
 kbd { font: 11px var(--mono); padding: 0 4px; border: 1px solid var(--line); border-radius: 4px; }
 
@@ -591,3 +591,7 @@ kbd { font: 11px var(--mono); padding: 0 4px; border: 1px solid var(--line); bor
 /* The ZX81 family shares the page: Spectrum-only controls go, its own come. */
 
 .ntsc .screen-wrap { aspect-ratio: 384 / 235; }
+
+.deck { display: flex; flex-direction: column; gap: 8px; }
+.device-name { grid-column: 1; font: 700 10px var(--mono); letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; min-width: 7ch; }
+.paste-dialog textarea { text-transform: none; }

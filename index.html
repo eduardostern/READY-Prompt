@@ -36,6 +36,9 @@
               <option value="4">4x</option>
             </select>
           </label>
+          <div class="btn-row">
+            <button id="paste-open" class="key-btn" type="button" title="Paste a BASIC listing and RUN it">✎ Listing</button>
+          </div>
           <dl class="readout">
             <dt>Frames</dt><dd id="fps">–</dd>
             <dt>CPU</dt><dd id="mhz">–</dd>
@@ -57,6 +60,34 @@
               <span class="stripes" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
               <i id="power-lamp" class="lamp power-lamp" title="Power"></i>
             </div>
+          </div>
+
+          <div class="deck" aria-label="Drives">
+            <div class="tape" id="prog">
+              <span class="device-name">Program</span>
+              <button class="cart" type="button" id="prog-load" title="Load a program (.prg, .p00), a tape, a disk or a cartridge, also in a .zip">
+                <span class="cart-label" id="prog-label">No program: click or drop a .prg, .t64, .d64, .tap, .crt</span>
+              </button>
+              <span class="tape-pos" id="prog-pos"></span>
+              <div class="tape-keys">
+                <button type="button" id="prog-run" title="Reset and load and RUN the program again">▶ RUN</button>
+                <button type="button" id="prog-save" title="Download the program as .prg">⤓</button>
+                <button type="button" class="eject" id="prog-eject" title="Forget it">⏏</button>
+              </div>
+              <p class="note tape-note" id="deck-note"></p>
+            </div>
+            <input id="file" type="file" accept=".prg,.p00,.t64,.tap,.d64,.crt,.zip" hidden />
+          </div>
+
+          <div class="kbd-wrap">
+            <button id="kbd-toggle" class="key-btn kbd-toggle" type="button" aria-expanded="false">⌨ Keyboard</button>
+            <div class="kbd" id="kbd" hidden aria-label="C64 keyboard"></div>
+          </div>
+
+          <div class="shelf" aria-label="Shelf">
+            <h2>Shelf</h2>
+            <ul id="shelf-list"></ul>
+            <p class="note" id="shelf-empty">Every program, tape, disk and cartridge you load waits here. Click one to load it again.</p>
           </div>
         </section>
 
@@ -82,6 +113,15 @@
           </label>
 
           <h2>Controls</h2>
+          <label class="field">Joystick
+            <select id="joystick">
+              <option value="2">In port 2 (most games)</option>
+              <option value="1">In port 1</option>
+              <option value="0">None (arrows are the cursor keys)</option>
+            </select>
+          </label>
+          <p class="note">With a joystick plugged in, the arrow keys and Right Ctrl (fire) are the stick.</p>
+          <p class="note" id="gamepad">No gamepad. Plug one in and press a button.</p>
           <p class="note">The keyboard types by character, as on a C64: <kbd>"</kbd> is SHIFT + 2, <kbd>@ * + :</kbd> are keys of their own.</p>
           <dl class="keys">
             <dt>Esc</dt><dd>RUN/STOP</dd>
@@ -103,6 +143,19 @@
         C64 ROMs © Commodore
       </footer>
     </div>
+    <dialog class="paste-dialog" id="paste-dialog">
+      <form method="dialog">
+        <h2>Type in a listing</h2>
+        <p>Paste a BASIC program, one numbered line per line, as a magazine printed it.
+          Control codes in braces work: <code>{CLR}</code>, <code>{3 DOWN}</code>, <code>{RED}</code>, <code>{RVS ON}</code>.</p>
+        <textarea id="paste-text" rows="12" spellcheck="false" placeholder="10 PRINT &quot;{CLR}HELLO&quot;&#10;20 POKE 53280,RND(1)*16&#10;30 GOTO 20"></textarea>
+        <p class="paste-error" id="paste-error"></p>
+        <div class="confirm-actions">
+          <button value="no" type="submit">Cancel</button>
+          <button value="run" class="confirm-ok" id="paste-run" type="submit">Load and RUN</button>
+        </div>
+      </form>
+    </dialog>
     <script type="module" src="./src/main.ts"></script>
   </body>
 </html>

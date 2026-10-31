@@ -1,20 +1,27 @@
 /**
- * READY-Prompt's page: the C64 in the monitor, and the panels for the
- * machine, display and controls around it.
+ * READY-Prompt's page: the C64 in the monitor, the drives and the keyboard
+ * under it, and the panels for the machine, display, sound and controls.
  */
 import './style.css';
+import { unzipSync } from 'fflate';
 import basicUrl from './roms/basic.901226-01.bin?url';
 import kernalUrl from './roms/kernal.901227-03.bin?url';
 import chargenUrl from './roms/characters.901225-01.bin?url';
-import { C64, type Model } from './c64/machine';
-import { KeyInput } from './c64/keyboard';
+import { C64, JOY_DOWN, JOY_FIRE, JOY_LEFT, JOY_RIGHT, JOY_UP, type Model } from './c64/machine';
+import { KeyInput, KEYS, type Key } from './c64/keyboard';
+import { LAYOUT, MODIFIERS } from './c64/legend';
+import { ListingError, tokenize } from './c64/basic';
+import { fromP00, injectPrg, prgName } from './c64/prg';
+import type { SidModel } from './c64/sid';
 import { WIDTH } from './c64/vic';
 import { audioContext } from './ui/audio';
+import { askConfirm } from './ui/confirm';
 import { waitForPower, warmUp } from './ui/power';
 import { SoundOut } from './ui/sound-out';
-import type { SidModel } from './c64/sid';
+import { loadShelf, shelve, type StoredFile, unshelve } from './ui/store';
 
 const SAMPLE_RATE = 44100;
+const MAX_FILE = 4 * 1024 * 1024;
 const SETTINGS_KEY = 'ready-prompt.settings';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -32,11 +39,14 @@ interface Settings {
   autoPower: boolean;
   volume: number;
   sid: SidModel;
+  /** The port the arrow keys and gamepad drive: 2, 1, or 0 for none. */
+  joystick: number;
+  keyboard: boolean;
 }
 
 const DEFAULTS: Settings = {
   model: 'pal', speed: 1, smooth: false, scanlines: true, curve: true, flicker: false, humbar: false, autoPower: false,
-  volume: 70, sid: '6581',
+  volume: 70, sid: '6581', joystick: 2, keyboard: false,
 };
 
 function loadSettings(): Settings {
@@ -44,6 +54,7 @@ function loadSettings(): Settings {
     const s = { ...DEFAULTS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}') };
     if (s.model !== 'pal' && s.model !== 'ntsc') s.model = 'pal';
     if (s.sid !== '6581' && s.sid !== '8580') s.sid = '6581';
+    if (![0, 1, 2].includes(s.joystick)) s.joystick = 2;
     return s;
   } catch {
     return { ...DEFAULTS };
@@ -165,6 +176,8 @@ async function start(): Promise<void> {
     running = true;
     showPower();
   };
+  /** Makes sure the machine is on (without resetting it if it is). */
+  const ensureOn = async () => { if (!running) await powerOn(); };
   powerBtn.addEventListener('click', async () => {
     if (running) {
       running = false;
@@ -177,18 +190,269 @@ async function start(): Promise<void> {
     if (!running) void powerOn();
   });
 
-  // ---- keyboard ------------------------------------------------------------
+  // ---- keyboard and joystick -----------------------------------------------
 
+  const stick = { up: false, down: false, left: false, right: false, fire: false };
+  const STICK_KEYS: Record<string, keyof typeof stick> = {
+    ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', ControlRight: 'fire',
+  };
+  let padBits = 0;
+  const applyStick = () => {
+    const bits = (stick.up ? JOY_UP : 0) | (stick.down ? JOY_DOWN : 0) | (stick.left ? JOY_LEFT : 0) |
+      (stick.right ? JOY_RIGHT : 0) | (stick.fire ? JOY_FIRE : 0) | padBits;
+    c64.joy1 = settings.joystick === 1 ? bits : 0;
+    c64.joy2 = settings.joystick === 2 ? bits : 0;
+  };
   const typing = (e: KeyboardEvent) => {
     const t = e.target as HTMLElement | null;
     return Boolean(t?.closest('input, select, textarea, dialog'));
   };
   window.addEventListener('keydown', e => {
     if (typing(e) || e.metaKey || !running) return;
+    if (settings.joystick && STICK_KEYS[e.code]) {
+      stick[STICK_KEYS[e.code]] = true;
+      applyStick();
+      e.preventDefault();
+      return;
+    }
     if (keys.keyDown(e.code, e.key)) e.preventDefault();
   });
-  window.addEventListener('keyup', e => keys.keyUp(e.code));
-  window.addEventListener('blur', () => { keys.releaseAll(); c64.restore = false; });
+  window.addEventListener('keyup', e => {
+    if (settings.joystick && STICK_KEYS[e.code]) {
+      stick[STICK_KEYS[e.code]] = false;
+      applyStick();
+      return;
+    }
+    keys.keyUp(e.code);
+  });
+  window.addEventListener('blur', () => {
+    keys.releaseAll();
+    c64.restore = false;
+    for (const k of Object.keys(stick) as (keyof typeof stick)[]) stick[k] = false;
+    applyStick();
+  });
+  const joystick = $<HTMLSelectElement>('joystick');
+  joystick.value = String(settings.joystick);
+  joystick.addEventListener('change', () => { settings.joystick = Number(joystick.value); save(); applyStick(); });
+
+  const padNote = $('gamepad');
+  const pollPad = () => {
+    const pad = navigator.getGamepads?.().find(p => p);
+    if (!pad) {
+      if (padBits) { padBits = 0; applyStick(); }
+      return;
+    }
+    padNote.textContent = `Gamepad: ${pad.id.replace(/\(.*\)/, '').trim() || 'connected'}`;
+    const b = (i: number) => Boolean(pad.buttons[i]?.pressed);
+    const [x = 0, y = 0] = pad.axes;
+    const bits = (y < -0.5 || b(12) ? JOY_UP : 0) | (y > 0.5 || b(13) ? JOY_DOWN : 0) |
+      (x < -0.5 || b(14) ? JOY_LEFT : 0) | (x > 0.5 || b(15) ? JOY_RIGHT : 0) |
+      (b(0) || b(1) || b(2) || b(3) ? JOY_FIRE : 0);
+    if (bits !== padBits) { padBits = bits; applyStick(); }
+  };
+
+  // The on-screen keyboard: a tap presses the key for a moment; SHIFT, C=
+  // and CTRL stay down until the next key, so one finger can type them.
+  const latched = new Set<string>();
+  const kbd = $('kbd');
+  kbd.replaceChildren(...LAYOUT.map(row => {
+    const r = document.createElement('div');
+    r.className = 'kbd-row';
+    for (const cap of row) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = `kbd-key${/^F\d/.test(cap.key) ? ' fn' : ''}${cap.label.length > 2 ? ' small' : ''}`;
+      b.dataset.key = cap.key;
+      if (cap.wide) b.style.flexGrow = String(cap.wide);
+      b.innerHTML = `<span class="shifted">${escape(cap.shifted ?? '')}</span><span class="label">${escape(cap.label)}</span>`;
+      b.setAttribute('aria-label', cap.key === 'SPACE' ? 'Space' : cap.label);
+      r.append(b);
+    }
+    return r;
+  }));
+  const showLatched = () => {
+    for (const b of kbd.querySelectorAll<HTMLElement>('.kbd-key')) b.classList.toggle('latched', latched.has(b.dataset.key!));
+  };
+  kbd.addEventListener('pointerdown', e => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>('.kbd-key');
+    if (!b || !running) return;
+    e.preventDefault();
+    const name = b.dataset.key!;
+    if (name === 'RESTORE') {
+      c64.restore = true;
+      setTimeout(() => { c64.restore = false; }, 100);
+      return;
+    }
+    if (MODIFIERS.has(name)) {
+      if (latched.has(name)) latched.delete(name); else latched.add(name);
+      showLatched();
+      return;
+    }
+    const held: Key[] = [...latched].map(n => KEYS[n]);
+    held.push(KEYS[name]);
+    keys.extra = held;
+    keys.update();
+    setTimeout(() => { keys.extra = []; keys.update(); }, 90);
+    latched.clear();
+    showLatched();
+  });
+  const kbdToggle = $('kbd-toggle');
+  const showKbd = () => {
+    kbd.hidden = !settings.keyboard;
+    kbdToggle.setAttribute('aria-expanded', String(settings.keyboard));
+  };
+  kbdToggle.addEventListener('click', () => { settings.keyboard = !settings.keyboard; save(); showKbd(); });
+  showKbd();
+
+  // ---- programs and the shelf ----------------------------------------------
+
+  const deckNote = $('deck-note');
+  const progBox = $('prog');
+  const progLabel = $('prog-label');
+  /** The program in the slot, to RUN again or download. */
+  let program: StoredFile | null = null;
+  const notice = (text: string) => { deckNote.textContent = text; };
+  const showProgram = () => {
+    progBox.classList.toggle('full', Boolean(program));
+    progLabel.textContent = program ? program.name : 'No program: click or drop a .prg, .t64, .d64, .tap, .crt';
+  };
+  showProgram();
+
+  /** Resets (or powers on) and drops the program in when BASIC is ready, then RUN. */
+  const runProgram = async (prg: Uint8Array) => {
+    if (running) c64.reset(); else await powerOn();
+    c64.whenReady(() => {
+      try {
+        injectPrg(c64, prg);
+        c64.type('RUN\n');
+      } catch (e) {
+        notice(`Could not load it: ${(e as Error).message}`);
+      }
+    });
+  };
+
+  const shelfList = $('shelf-list');
+  const showShelf = async () => {
+    const all = await loadShelf();
+    shelfList.replaceChildren(...all.map(f => {
+      const li = document.createElement('li');
+      if (program?.name === f.name) li.className = 'inserted';
+      const pick = document.createElement('button');
+      pick.className = 'shelf-cart';
+      pick.type = 'button';
+      pick.textContent = f.name;
+      pick.title = 'Load it';
+      pick.addEventListener('click', () => void open(f, false));
+      const del = document.createElement('button');
+      del.className = 'shelf-del';
+      del.type = 'button';
+      del.textContent = '✕';
+      del.title = 'Take it off the shelf';
+      del.addEventListener('click', async () => {
+        if (await askConfirm({ title: `Remove ${f.name}?`, message: 'It is taken off the shelf in this browser.', ok: 'Remove' })) {
+          await unshelve(f.name);
+          void showShelf();
+        }
+      });
+      li.append(pick, del);
+      return li;
+    }));
+  };
+
+  /** Any file: a program, tape, disk or cartridge (also inside a .zip). */
+  const open = async (file: StoredFile, fromOutside = true) => {
+    try {
+      if (/\.zip$/i.test(file.name)) {
+        const files = unzipSync(file.data);
+        const inner = Object.keys(files).find(n => /\.(prg|p00|t64|tap|d64|crt)$/i.test(n));
+        if (!inner) throw new Error('no .prg, .t64, .tap, .d64 or .crt inside this .zip');
+        file = { name: inner.split('/').pop()!, data: files[inner] };
+      }
+      if (file.data.length > MAX_FILE) throw new Error('that file is too big for a C64');
+      const ext = /\.([^.]+)$/.exec(file.name)?.[1].toLowerCase() ?? '';
+      if (ext === 'prg' || ext === 'p00') {
+        const prg = ext === 'p00' ? fromP00(file.data) : file.data;
+        program = { name: `${prgName(file.name)}.prg`, data: prg };
+        showProgram();
+        notice('');
+        await runProgram(prg);
+      } else {
+        throw new Error(`.${ext} files are not supported yet`);
+      }
+      if (fromOutside) await shelve(file);
+      void showShelf();
+    } catch (err) {
+      notice(`Could not load ${file.name}: ${(err as Error).message}`);
+    }
+  };
+
+  const fileInput = $<HTMLInputElement>('file');
+  const readFile = async (f: File) => open({ name: f.name, data: new Uint8Array(await f.arrayBuffer()) });
+  $('prog-load').addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', () => {
+    const f = fileInput.files?.[0];
+    if (f) void readFile(f);
+    fileInput.value = '';
+  });
+  $('prog-run').addEventListener('click', () => { if (program) void runProgram(program.data); });
+  $('prog-save').addEventListener('click', () => { if (program) download(program.name, program.data); });
+  $('prog-eject').addEventListener('click', () => { program = null; showProgram(); void showShelf(); });
+
+  // Drag and drop anywhere on the page.
+  let dragDepth = 0;
+  window.addEventListener('dragenter', e => { e.preventDefault(); if (dragDepth++ === 0) document.body.classList.add('dragging'); });
+  window.addEventListener('dragleave', () => { if (--dragDepth === 0) document.body.classList.remove('dragging'); });
+  window.addEventListener('dragover', e => e.preventDefault());
+  window.addEventListener('drop', e => {
+    e.preventDefault();
+    dragDepth = 0;
+    document.body.classList.remove('dragging');
+    const f = e.dataTransfer?.files?.[0];
+    if (f) void readFile(f);
+  });
+
+  // Paste a listing: tokenized as the C64's editor would, then RUN.
+  const pasteDialog = $<HTMLDialogElement>('paste-dialog');
+  const pasteText = $<HTMLTextAreaElement>('paste-text');
+  const pasteError = $('paste-error');
+  $('paste-open').addEventListener('click', () => {
+    pasteError.textContent = '';
+    pasteDialog.showModal();
+    pasteText.focus();
+  });
+  $('paste-run').addEventListener('click', e => {
+    try {
+      const prg = tokenize(pasteText.value);
+      program = { name: 'LISTING.prg', data: prg };
+      showProgram();
+      void runProgram(prg);
+    } catch (err) {
+      e.preventDefault();
+      pasteError.textContent = err instanceof ListingError ? err.message : String(err);
+    }
+  });
+
+  void showShelf();
+
+  // Files from the page's link: ?prg=, ?tap=, ?d64=, ?crt= (or ?file=), any URL that allows it (CORS).
+  const params = new URLSearchParams(location.search);
+  const linkKey = ['file', 'prg', 'tap', 't64', 'd64', 'crt'].find(k => params.get(k));
+  const fromLink = async () => {
+    if (!linkKey) return;
+    const url = params.get(linkKey)!;
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(20_000) });
+      if (!res.ok) throw new Error(`the server answered ${res.status}`);
+      let name = decodeURIComponent(new URL(url, location.href).pathname.split('/').pop() || '') || `link.${linkKey}`;
+      if (linkKey !== 'file' && !new RegExp(`\\.(${linkKey}|zip)$`, 'i').test(name)) name += `.${linkKey}`;
+      await open({ name, data: new Uint8Array(await res.arrayBuffer()) });
+    } catch (e) {
+      const why = e instanceof TypeError
+        ? 'the site does not let other pages fetch its files (CORS); download it and drop it here instead'
+        : (e as Error).name === 'TimeoutError' ? 'no answer in 20 seconds' : (e as Error).message;
+      notice(`Could not load ${url}: ${why}`);
+    }
+  };
 
   // ---- the frame loop ------------------------------------------------------
 
@@ -205,6 +469,7 @@ async function start(): Promise<void> {
     owed += Math.min(now - last, 250);
     last = now;
     if (!running) { owed = 0; return; }
+    pollPad();
     let ran = 0;
     const most = 4 * settings.speed;
     while (owed >= FRAME_MS / settings.speed && ran < most) {
@@ -230,12 +495,27 @@ async function start(): Promise<void> {
   // ---- first power-on ------------------------------------------------------
 
   showPower();
-  if (settings.autoPower || sessionStorage.getItem('ready-prompt.warm') === '1') {
-    await powerOn();
+  if (settings.autoPower || linkKey || sessionStorage.getItem('ready-prompt.warm') === '1') {
+    await ensureOn();
   } else {
     await waitForPower(wrap);
-    await powerOn();
+    await ensureOn();
   }
+  applyStick();
+  void fromLink();
+}
+
+function escape(s: string): string {
+  return s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+}
+
+function download(name: string, data: Uint8Array): void {
+  const url = URL.createObjectURL(new Blob([data as BlobPart]));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 void start();
