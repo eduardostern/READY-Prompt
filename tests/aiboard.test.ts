@@ -4,7 +4,9 @@ import { checkAsm, checkBasic } from '../src/ai/check';
 import type { ChatFn } from '../src/ai/deepseek';
 import { ROMS } from './helpers';
 
-describe('AI board checks', () => {
+// The checks run a whole C64 for seconds of emulated time; on a busy CI
+// runner beside the drive tests they can take longer than vitest's 5 s.
+describe('AI board checks', { timeout: 30_000 }, () => {
   it('passes a BASIC program that runs, and catches one that stops with an error', async () => {
     expect((await checkBasic(ROMS, 'OK', '10 PRINT "HELLO"\n20 GOTO 10')).ok).toBe(true);
     const bad = await checkBasic(ROMS, 'BAD', '10 PRINT "HI"\n20 PRUNT X');
@@ -23,7 +25,7 @@ describe('AI board checks', () => {
   });
 });
 
-describe('AI board', () => {
+describe('AI board', { timeout: 30_000 }, () => {
   it('orders a program: describes, names, writes, checks (fixing once) and puts it on the disk', async () => {
     const answers = ['10 PRUNT "OOPS"', '10 PRINT "TIMES TABLE"\n20 FOR I=1 TO 10:PRINT I*7:NEXT'];
     const chat: ChatFn = async function* () { yield { kind: 'text', text: answers.shift()! }; };
