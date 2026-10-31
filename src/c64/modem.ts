@@ -39,6 +39,7 @@ export interface PhoneEntry {
   host: string;
   port: number;
   name?: string;
+  petscii?: boolean;
   /** wss:// address the browser can dial without the relay. */
   ws?: string;
 }
@@ -279,7 +280,7 @@ export class Modem {
   }
 
   private info(): void {
-    this.reply(`K-Prompt telnet modem, speaker M${this.speaker} L${this.volume}`);
+    this.reply(`READY-Prompt telnet modem, speaker M${this.speaker} L${this.volume}`);
     const book = this.phoneBook();
     if (!book.length) {
       this.reply('No phone book: ATDT host:port');
@@ -287,9 +288,11 @@ export class Modem {
     }
     book.forEach((e, n) => {
       const direct = e.ws ? ' *' : '';
-      this.reply(`${String(n + 1).padStart(2)}  ${e.host}:${e.port}${e.name ? `  ${e.name}` : ''}${direct}`);
+      const petscii = e.petscii ? ' (P)' : '';
+      this.reply(`${String(n + 1).padStart(2)}  ${e.host}:${e.port}${e.name ? `  ${e.name}` : ''}${petscii}${direct}`);
     });
     if (book.some((e) => e.ws)) this.reply(' * connects straight from the browser');
+    if (book.some((e) => e.petscii)) this.reply(' (P) a Commodore board: PETSCII');
     for (const s of this.services) this.reply(`    ATDT ${s.number}  ${s.name}`);
     this.reply('Dial with ATDT n, ATDT host:port or ATDT wss://host:port');
   }

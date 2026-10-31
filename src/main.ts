@@ -24,10 +24,13 @@ import { D64, nameString } from './c64/disk';
 import { Modem } from './c64/modem';
 import { SwiftLink } from './c64/swiftlink';
 import { modemOptions } from './ui/modem-line';
+import termUrl from './programs/TERM.prg?url';
 import { isState, loadState, Rewind, saveState } from './c64/state';
 import { cartridgeFromCrt, CRT_TYPES, type CrtCartridge } from './c64/cartridge';
 
 const SAMPLE_RATE = 44100;
+/** Programs that come with the page: always on the shelf, in their latest version. */
+const BUILT_IN: [string, string][] = [['TERM.prg', termUrl]];
 const MAX_FILE = 4 * 1024 * 1024;
 const SETTINGS_KEY = 'ready-prompt.settings';
 
@@ -522,7 +525,8 @@ async function start(): Promise<void> {
     const all = await loadShelf();
     shelfList.replaceChildren(...all.map(f => {
       const li = document.createElement('li');
-      if (program?.name === f.name || c64.tape?.name === f.name || c64.drives.some(d => d.disk?.name === f.name) || cartFile?.name === f.name) li.className = 'inserted';
+      if (BUILT_IN.some(([n]) => n === f.name)) li.classList.add('builtin');
+      if (program?.name === f.name || c64.tape?.name === f.name || c64.drives.some(d => d.disk?.name === f.name) || cartFile?.name === f.name) li.classList.add('inserted');
       const pick = document.createElement('button');
       pick.className = 'shelf-cart';
       pick.type = 'button';
@@ -536,7 +540,7 @@ async function start(): Promise<void> {
       del.title = 'Take it off the shelf';
       del.addEventListener('click', async () => {
         if (await askConfirm({ title: `Remove ${f.name}?`, message: 'It is taken off the shelf in this browser.', ok: 'Remove' })) {
-          await unshelve(f.name);
+          await unshelve(f.name); // built-ins come back on the next visit
           void showShelf();
         }
       });
@@ -558,6 +562,11 @@ async function start(): Promise<void> {
       const ext = /\.([^.]+)$/.exec(file.name)?.[1].toLowerCase() ?? '';
       if (ext === 'prg' || ext === 'p00') {
         const prg = ext === 'p00' ? fromP00(file.data) : file.data;
+        // TERM talks through the SwiftLink: plug it in (it takes the cartridge's place).
+        if (/^term\b/i.test(file.name) && !settings.swiftlink) {
+          if (c64.cart) { c64.insert(null); cartFile = null; void saveCart(null); showCart(); }
+          setSwiftlink(true);
+        }
         program = { name: `${prgName(file.name)}.prg`, data: prg };
         showProgram();
         notice('');
@@ -662,6 +671,9 @@ async function start(): Promise<void> {
     }
   });
 
+  for (const [name, url] of BUILT_IN) {
+    try { await shelve({ name, data: await bytes(url) }); } catch { /* offline */ }
+  }
   void showShelf();
 
   // Files from the page's link: ?prg=, ?tap=, ?d64=, ?crt= (or ?file=), any URL that allows it (CORS).

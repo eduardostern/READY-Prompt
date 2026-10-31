@@ -13,6 +13,7 @@ npm test                         # vitest
 npx tsc --noEmit                 # typecheck (npm run build also runs it)
 npm run build                    # static site in dist/
 npm run deploy                   # build + wrangler deploy (only when the user says so)
+npm run term                     # reassemble programs/TERM.asm into src/programs/TERM.prg (commit both)
 ```
 
 Run `npx tsc --noEmit` and `npm test` before every commit.
@@ -46,6 +47,7 @@ Run `npx tsc --noEmit` and `npm test` before every commit.
 | `src/c64/swiftlink.ts` | SwiftLink: 6551 at DE00h-DE03h, NMI on receive, doubled baud table (15 = 38400), bytes paced at the baud rate and held until read |
 | `src/c64/modem.ts` | K-Prompt's Hayes modem with telnet (same code in all the siblings) |
 | `src/phonebook.ts`, `worker/` | BBSes the relay may reach (`petscii` marks Commodore boards); the Worker's `/relay` WebSocket-to-telnet |
+| `programs/TERM.asm`, `scripts/term.ts`, `build-term.ts` | TERM, the SwiftLink terminal (.prg, SYS 2061): ANSI mode with its own screen in the lower-case set, PETSCII mode through CHROUT; the build writes its tables (row addresses, ASCII/CP437 → screen codes, keys → ASCII) at `;@TABLES` |
 | `src/main.ts` | Page wiring, frame loop, keys, joystick (arrows + Right Ctrl), gamepad, program slot, shelf, listing dialog, `?prg=`/`?file=` links |
 | `src/ui/` | From K-Prompt: audio, power switch, sound output, confirm dialog, call sound, modem audio; `modem-line.ts` (from Ok-Prompt: gateway, else relay); `store.ts` (IndexedDB `ready-prompt`: shelf, tape, disk:n, cart, quick) |
 | `src/roms/` | BASIC 901226-01, KERNAL 901227-03, characters 901225-01 (see its README) |
@@ -107,6 +109,11 @@ Run `npx tsc --noEmit` and `npm test` before every commit.
 - The SwiftLink sits at DE00h beside the cartridge (as on a port
   expander), but Ocean/Magic Desk/EasyFlash also use DE00h: it is off by
   default and plugging in a cartridge takes it out.
+- TERM: the KERNAL screen editor links lines and has quote mode, so the
+  ANSI side draws its own screen; the PETSCII side clears QTSW (D4h) and
+  INSRT (D8h) after every CHROUT. as65's `.text` is ca65's C64 PETSCII
+  (capitals become shifted): use `.byte "..."` for text shown in the
+  capitals set. tests/term.test.ts fails if TERM.prg is not rebuilt.
 - Typing goes into the keyboard buffer (0277h, count C6h); both cases type
   plain letters (listings are upper case).
 

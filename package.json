@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "READY-Prompt — a Commodore 64 emulator for the browser",
+  "description": "READY-Prompt \u2014 a Commodore 64 emulator for the browser",
   "author": "Eduardo Stern <eduardostern@icloud.com>",
   "license": "MIT",
   "scripts": {
@@ -11,7 +11,8 @@
     "build": "tsc --noEmit && tsc -p worker && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "npm run build && wrangler deploy",
+    "term": "vite-node scripts/build-term.ts"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261022.1",
