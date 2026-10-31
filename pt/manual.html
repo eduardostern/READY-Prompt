@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <title>Manual · READY-Prompt</title>
+    <meta name="description" content="Como usar o READY-Prompt: programas e listagens, teclado e joystick, fitas, disquetes, cartuchos, estados salvos, o modem, o TERM e o BBS de IA." />
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+  </head>
+  <body class="history">
+    <div class="doc">
+      <nav class="doc-nav">
+        <a href="../" class="brand-sm">READY-Prompt<span class="cursor"></span></a>
+        <span class="doc-links"><a href="../manual.html" class="doc-back" hreflang="en" lang="en">English</a> <a href="./history.html" class="doc-back">História</a> <a href="../" class="doc-back">← Voltar ao C64</a></span>
+      </nav>
+
+      <header class="doc-head">
+        <span class="kicker">Manual do usuário</span>
+        <h1>Usando o READY-Prompt</h1>
+        <p class="lede">
+          Um Commodore 64 no seu navegador, com seu BASIC, um Datasette, dois
+          drives 1541, a porta de cartucho e um modem. Tudo o que você carrega
+          fica neste navegador para a próxima vez.
+        </p>
+        <ol class="toc">
+          <li><a href="#start">Primeiros passos</a></li>
+          <li><a href="#machine">A máquina</a></li>
+          <li><a href="#programs">Programas e listagens</a></li>
+          <li><a href="#keyboard">Teclado e joystick</a></li>
+          <li><a href="#tapes">Fitas</a></li>
+          <li><a href="#disks">Disquetes</a></li>
+          <li><a href="#carts">Cartuchos</a></li>
+          <li><a href="#states">Estados salvos</a></li>
+          <li><a href="#modem">O modem, o TERM e o BBS de IA</a></li>
+          <li><a href="#storage">O que o navegador guarda</a></li>
+          <li><a href="#software">Onde achar programas</a></li>
+          <li><a href="#trouble">Quando algo não funciona</a></li>
+        </ol>
+      </header>
+
+      <section id="start" class="chapter">
+        <h2><span>1</span>Primeiros passos</h2>
+        <div class="cols">
+          <div>
+            <ol class="facts">
+              <li>Abra a página e aperte uma tecla ou clique na tela: o C64 liga (os navegadores só permitem som depois disso). Marque <b>Power on by itself</b> no painel Machine para pular isso da próxima vez.</li>
+              <li>Ele começa como um C64 começava: <code>**** COMMODORE 64 BASIC V2 ****</code>, <code>38911 BASIC BYTES FREE</code> e <code>READY.</code> Digite <code>PRINT "OLA"</code> e aperte Enter.</li>
+              <li>Solte um programa, fita, disquete ou cartucho em qualquer lugar da página (ou dentro de um <code>.zip</code>): ele carrega e roda.</li>
+            </ol>
+          </div>
+          <aside class="callout">
+            <h3>Os painéis</h3>
+            <ul>
+              <li><b>Machine</b> (esquerda): ligar, reset, o modelo, a velocidade, opções de fita, estados salvos, a janela de listagem.</li>
+              <li><b>Centro</b>: o monitor, depois a vaga de programa, a porta de cartucho, o Datasette e os drives 8 e 9, o teclado na tela e a estante.</li>
+              <li><b>Settings</b> (direita): imagem, som e o chip SID, o modem, o BBS de IA, o joystick.</li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+
+      <section id="machine" class="chapter">
+        <h2><span>2</span>A máquina</h2>
+        <p>
+          <b>PAL</b> é o C64 europeu: 50 quadros por segundo, 985 kHz, 312
+          linhas. <b>NTSC</b> é o americano: 60 quadros, 1,02 MHz, 263 linhas.
+          A maioria dos jogos e demos europeus espera PAL; alguns jogos
+          americanos só rodam em NTSC. Mudar reinicia o C64.
+        </p>
+        <p>
+          O menu <b>SID chip</b> escolhe o 6581 dos primeiros C64 ou o 8580 do
+          C64C. As músicas dos anos 1980 foram feitas para o 6581, que também
+          toca as vozes e baterias digitalizadas que o 8580 quase cala.
+          <b>Speed</b> roda a máquina duas ou quatro vezes mais rápido, sem som.
+        </p>
+      </section>
+
+      <section id="programs" class="chapter">
+        <h2><span>3</span>Programas e listagens</h2>
+        <ul class="facts">
+          <li>Um <code>.prg</code> (ou <code>.p00</code>) vai para a memória no seu próprio endereço quando o BASIC está pronto, e o READY-Prompt digita <code>RUN</code>. Ele fica na vaga <b>Program</b>: <b>▶ RUN</b> o roda de novo numa máquina zerada, <b>⤓</b> o baixa.</li>
+          <li><b>✎ Listing</b> recebe um programa em BASIC digitado ou colado, como uma revista o imprimia, o converte como o editor do próprio C64 faria e o roda. Os códigos de controle das revistas entre chaves funcionam: <code>{CLR}</code>, <code>{HOME}</code>, <code>{3 DOWN}</code>, <code>{RED}</code>, <code>{RVS ON}</code>.</li>
+          <li>Uma página pode ter link para um programa: <code>?prg=</code>, <code>?d64=</code>, <code>?tap=</code>, <code>?crt=</code> ou <code>?file=</code> seguido do endereço carrega o arquivo na chegada, se o site onde ele está deixar outras páginas buscarem seus arquivos.</li>
+        </ul>
+      </section>
+
+      <section id="keyboard" class="chapter">
+        <h2><span>4</span>Teclado e joystick</h2>
+        <div class="cols">
+          <div>
+            <p>
+              O teclado do PC digita por caractere, do jeito do C64:
+              <kbd>"</kbd> é SHIFT + 2 num C64, e o READY-Prompt aperta isso por
+              você; <kbd>@</kbd>, <kbd>*</kbd>, <kbd>+</kbd>, <kbd>:</kbd> e
+              <kbd>=</kbd> têm tecla própria. As letras saem em maiúsculas, como
+              no C64; SHIFT com uma letra dá os gráficos impressos na frente da
+              tecla. Acentos não existem no C64.
+            </p>
+            <p>
+              <b>⌨ Keyboard</b> mostra o teclado do próprio C64. SHIFT, C= e CTRL
+              ficam apertados até a próxima tecla, para digitar com um dedo
+              CTRL + 1 (preto) ou C= + uma letra (seu gráfico).
+            </p>
+            <p>
+              A maioria dos jogos lê o <b>joystick na porta 2</b>. Com um
+              joystick ligado (menu Joystick), as setas e o Ctrl da direita
+              (tiro) são o manche, e um gamepad também. Escolha <i>None</i> para
+              as setas voltarem a mover o cursor.
+            </p>
+          </div>
+          <aside class="callout">
+            <h3>Teclas</h3>
+            <ul>
+              <li><b>Esc</b>: RUN/STOP. <b>PgUp</b>: RESTORE (RUN/STOP + RESTORE restaura a tela).</li>
+              <li><b>Home</b>: CLR/HOME. <b>Backspace</b>: INST/DEL.</li>
+              <li><b>Ctrl</b>, <b>Tab</b>: CTRL. <b>Alt</b>: a tecla Commodore.</li>
+              <li><b>F1-F8</b>: as teclas de função do C64.</li>
+              <li><b>F9</b> / <b>F10</b>: salvar / carregar rápido. <b>PgDn</b>: voltar no tempo.</li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+
+      <section id="tapes" class="chapter">
+        <h2><span>5</span>Fitas</h2>
+        <p>
+          Um <code>.tap</code> é a gravação da fita, pulso a pulso; um
+          <code>.t64</code> guarda arquivos. Qualquer um vai no <b>Datasette</b>,
+          e <b>▶ LOAD</b> reinicia, aperta o PLAY e digita <code>LOAD</code> e
+          <code>RUN</code>.
+        </p>
+        <ul class="facts">
+          <li>Com <b>Load tapes at once</b>, um arquivo no formato do KERNAL carrega na hora. O resto (jogos com <b>turbo loader</b>, que são a maioria) toca em tempo real, como a fita tocava; <b>Fast-forward while a tape plays</b> roda o C64 o mais rápido que o seu computador deixar enquanto isso.</li>
+          <li>Desmarque <b>Load tapes at once</b> para ver a coisa de verdade: <code>PRESS PLAY ON TAPE</code>, <code>FOUND</code>, a tela apagando.</li>
+          <li><code>SAVE "NOME"</code> grava na fita do Datasette (<b>＋ Blank</b> põe uma vazia); <b>⤓</b> a baixa como <code>.tap</code>.</li>
+        </ul>
+      </section>
+
+      <section id="disks" class="chapter">
+        <h2><span>6</span>Disquetes</h2>
+        <p>
+          Um <code>.d64</code> é um disquete de 1541. Solto na página, ele vai
+          para o <b>drive 8</b>, e o READY-Prompt digita <code>LOAD"*",8,1</code>
+          e <code>RUN</code>. <b>$</b> lista o diretório (<code>LOAD"$",8</code>
+          e depois <code>LIST</code>). O drive 9 recebe um segundo disquete.
+        </p>
+        <ul class="facts">
+          <li>O BASIC fala com o drive como com um 1541: <code>LOAD"NOME",8</code>, <code>SAVE"NOME",8</code>, <code>SAVE"@0:NOME",8</code> para substituir um arquivo, <code>OPEN 2,8,2,"DADOS,S,W"</code> e <code>PRINT#2</code> para um arquivo sequencial.</li>
+          <li>O canal 15 recebe comandos e dá a mensagem de erro do drive: <code>OPEN 15,8,15,"S:VELHO"</code> apaga um arquivo, <code>"R:NOVO=VELHO"</code> renomeia, <code>"N:NOME,ID"</code> formata o disquete; <code>INPUT#15,E,E$</code> lê a mensagem.</li>
+          <li><b>＋ Blank</b> põe um disquete formatado; <b>⤓</b> baixa o disquete com tudo o que foi gravado nele.</li>
+        </ul>
+      </section>
+
+      <section id="carts" class="chapter">
+        <h2><span>7</span>Cartuchos</h2>
+        <p>
+          Um <code>.crt</code> vai na porta de cartucho e o C64 reinicia com
+          ele, como acontecia ao encaixar um com o computador desligado. O
+          READY-Prompt roda cartuchos normais de 8K e 16K, os Ultimax, e os
+          tipos com troca de bancos em que vinha a maioria dos jogos e demos:
+          Ocean, Magic Desk, System 3, Dinamic, Fun Play, Simons' BASIC e
+          EasyFlash. Cartuchos congeladores como o Action Replay e o Final
+          Cartridge ainda não. <b>⏏</b> tira o cartucho.
+        </p>
+      </section>
+
+      <section id="states" class="chapter">
+        <h2><span>8</span>Estados salvos</h2>
+        <ul class="facts">
+          <li><b>F9</b> (Quick save) guarda a máquina inteira como está, neste navegador; <b>F10</b> (Quick load) volta a ela.</li>
+          <li><b>PgDn</b> (Rewind) volta um segundo; aperte de novo para mais, até 30 segundos.</li>
+          <li><b>⤓ State</b> baixa a máquina como um arquivo <code>.rdy</code>; solte-o na página para voltar àquele momento. Um estado guarda a máquina, não a fita, os disquetes nem o cartucho: carregue-o com os mesmos no lugar.</li>
+        </ul>
+      </section>
+
+      <section id="modem" class="chapter">
+        <h2><span>9</span>O modem, o TERM e o BBS de IA</h2>
+        <div class="cols">
+          <div>
+            <p>
+              Marque <b>SwiftLink modem</b> para encaixar um SwiftLink, o
+              cartucho RS-232 que os terminais do C64 dos anos 1990 usavam
+              (CCGMS, Novaterm), com um modem Hayes por trás que liga para BBS
+              por telnet. Ele ocupa a porta de cartucho: encaixar um jogo o
+              tira.
+            </p>
+            <p>
+              Carregue o <b>TERM.prg</b> da estante (ele encaixa o SwiftLink
+              sozinho). <code>ATI</code> lista os BBS, <code>ATDT 1</code> liga
+              para o primeiro. O TERM começa no modo ANSI, para os BBS de PC;
+              <b>F1</b> muda para <b>PETSCII</b>, para os BBS Commodore,
+              marcados com (P). <b>F7</b> volta ao BASIC com a ligação no ar, e
+              <code>SYS 2061</code> retorna.
+            </p>
+            <p>
+              <code>ATDT AI</code> liga para o BBS de IA: converse com o sysop
+              (o DeepSeek) ou com o Bastard Operator From Hell, ou encomende um
+              programa em BASIC ou linguagem de máquina. O BBS o testa num C64
+              reserva e o grava no disquete do drive 8: aperte F7 e
+              <code>LOAD"NOME",8</code>. Ele também conserta um programa seu em
+              BASIC: grave-o antes nesse disquete. Precisa da sua própria chave
+              de API do DeepSeek (o painel AI board explica como conseguir uma).
+            </p>
+          </div>
+          <aside class="callout">
+            <h3>Os comandos do modem</h3>
+            <ul>
+              <li><code>ATI</code>: a lista de BBS. <code>ATDT n</code>, <code>ATDT host:porta</code>: discar.</li>
+              <li><code>+++</code> (com um segundo de pausa antes e depois): volta aos comandos; <code>ATH</code> desliga, <code>ATO</code> volta à ligação.</li>
+              <li><code>ATM0</code> cala o alto-falante, <code>ATL1-3</code> ajusta o volume, <code>AT&amp;W</code> os guarda.</li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+
+      <section id="storage" class="chapter">
+        <h2><span>10</span>O que o navegador guarda</h2>
+        <p>
+          Todo arquivo que você carrega espera na <b>estante</b> (Shelf);
+          clique para carregar de novo, <b>✕</b> para tirá-lo. A fita do
+          Datasette, os disquetes dos drives (com o que foi gravado neles), o
+          cartucho, o salvamento rápido e as suas preferências voltam na
+          próxima visita. Tudo fica neste navegador (IndexedDB e
+          localStorage); nada vai para um servidor, a não ser as ligações para
+          BBS e as perguntas do BBS de IA ao DeepSeek.
+        </p>
+      </section>
+
+      <section id="software" class="chapter">
+        <h2><span>11</span>Onde achar programas</h2>
+        <ul class="facts">
+          <li><a href="https://csdb.dk">CSDb</a>, o banco de dados da cena do C64: demos, coleções de música, ferramentas e jogos novos da cena, quase sempre como <code>.prg</code> ou <code>.d64</code>.</li>
+          <li><a href="https://www.hvsc.c64.org">A High Voltage SID Collection</a>: as músicas, como arquivos <code>.sid</code>.</li>
+          <li>Ainda se fazem jogos novos, comerciais e gratuitos, para o C64: o <a href="https://itch.io/games/tag-commodore-64">itch.io</a> lista muitos, muitas vezes com um <code>.d64</code> ou <code>.crt</code>.</li>
+          <li>Os jogos antigos ainda têm direitos autorais, mesmo os que não se vendem mais: use cópias suas, ou as que os autores liberaram.</li>
+        </ul>
+      </section>
+
+      <section id="trouble" class="chapter">
+        <h2><span>12</span>Quando algo não funciona</h2>
+        <ul class="facts">
+          <li><b>Um jogo em disquete para em "LOADING" ou trava</b>: provavelmente usa uma carga rápida que roda um programa próprio na CPU do 1541. O drive do READY-Prompt responde ao KERNAL, não tem um 6502 próprio, então esses precisam de um 1541 de verdade. Uma versão em <code>.tap</code> ou <code>.crt</code> costuma funcionar.</li>
+          <li><b>Um jogo ignora o joystick</b>: tente a porta 1 no menu Joystick.</li>
+          <li><b>As setas movem o manche em vez do cursor</b>: ponha o joystick em None.</li>
+          <li><b>Um jogo roda rápido demais ou a imagem rola</b>: pode ser feito para o outro sistema de TV: troque entre PAL e NTSC.</li>
+          <li><b>Sem som</b>: clique uma vez na página (os navegadores exigem) e confira o volume.</li>
+          <li><b>O C64 travou</b>: RUN/STOP + RESTORE (Esc + PgUp) volta ao BASIC; Reset o reinicia.</li>
+        </ul>
+      </section>
+
+      <footer class="foot">
+        READY-Prompt · © 2026 Eduardo Stern · <a href="./history.html">A história do Commodore 64</a>
+      </footer>
+    </div>
+    <script type="module" src="../src/history.ts"></script>
+  </body>
+</html>

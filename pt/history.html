@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <title>A história do Commodore 64 · READY-Prompt</title>
+    <meta name="description" content="Uma breve história do Commodore 64: o 6502 de 25 dólares, Jack Tramiel, dois chips em busca de um computador, o VIC-II e o SID, a guerra de preços, a cena demo, e como o READY-Prompt o emula." />
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+  </head>
+  <body class="history">
+    <div class="doc">
+      <nav class="doc-nav">
+        <a href="../" class="brand-sm">READY-Prompt<span class="cursor"></span></a>
+        <span class="doc-links"><a href="../history.html" class="doc-back" hreflang="en" lang="en">English</a> <a href="./manual.html" class="doc-back">Manual</a> <a href="../" class="doc-back">← Voltar ao C64</a></span>
+      </nav>
+
+      <header class="doc-head">
+        <span class="kicker">Um guia de campo · de Norristown a West Chester</span>
+        <h1>A história do Commodore 64</h1>
+        <p class="lede">
+          Dois chips feitos para vender a outra pessoa, um chefe que queria um
+          computador para as massas, e o modelo de computador mais vendido de
+          todos os tempos. É a máquina que o READY-Prompt emula, ciclo a
+          ciclo.
+        </p>
+        <ol class="toc">
+          <li><a href="#cpu">O processador de 25 dólares</a></li>
+          <li><a href="#tramiel">A Commodore de Jack Tramiel</a></li>
+          <li><a href="#chips">Dois chips em busca de um computador</a></li>
+          <li><a href="#vic">O VIC-II</a></li>
+          <li><a href="#sid">O SID</a></li>
+          <li><a href="#war">A guerra de preços</a></li>
+          <li><a href="#storage">Fita, disquete e paciência</a></li>
+          <li><a href="#scene">A cena</a></li>
+          <li><a href="#end">O C64C, e o fim</a></li>
+          <li><a href="#brazil">E no Brasil?</a></li>
+          <li><a href="#emulation">Como o READY-Prompt o emula</a></li>
+          <li><a href="#siblings">Os irmãos</a></li>
+          <li><a href="#sources">Fontes</a></li>
+        </ol>
+      </header>
+
+      <section class="timeline" aria-label="Linha do tempo">
+        <div><b>set 1975</b>O 6502 da MOS na WESCON, 25 dólares</div>
+        <div><b>1976</b>A Commodore compra a MOS Technology</div>
+        <div><b>1977</b>Commodore PET 2001</div>
+        <div><b>1981</b>VIC-20: o primeiro computador a vender um milhão</div>
+        <div><b>jan 1982</b>O C64 aparece na CES, em Las Vegas</div>
+        <div><b>ago 1982</b>À venda por 595 dólares</div>
+        <div><b>1983</b>Guerra de preços; a Texas Instruments desiste</div>
+        <div><b>jan 1984</b>Tramiel deixa a Commodore</div>
+        <div><b>1986</b>O C64C, numa caixa nova</div>
+        <div><b>abr 1994</b>A Commodore vai à falência</div>
+      </section>
+
+      <section id="cpu" class="chapter">
+        <h2><span>1</span>O processador de 25 dólares</h2>
+        <div class="cols">
+          <div>
+            <p>
+              Em 1975 um microprocessador custava centenas de dólares. <b>Chuck
+              Peddle</b> e um grupo de engenheiros saíram da Motorola, onde
+              tinham trabalhado no 6800, para a <b>MOS Technology</b>, uma
+              fabricante de chips da Pensilvânia, e projetaram um processador
+              mais simples e mais barato. A MOS vendeu o <b>6502</b> numa suíte
+              de hotel durante a feira WESCON, em setembro de 1975, por
+              <b>25 dólares</b>.
+            </p>
+            <p>
+              Ele tinha um acumulador, dois registradores de índice e uma pilha
+              de 256 bytes, e compensava isso com acesso rápido aos primeiros
+              256 bytes da memória, a <i>página zero</i>, e modos de
+              endereçamento engenhosos. O Apple II, os Atari 400 e 800, o BBC
+              Micro e o NES foram todos construídos com ele. E também, numa
+              versão com uma porta de E/S própria, o <b>6510</b>, o C64.
+            </p>
+          </div>
+          <aside class="callout">
+            <h3>A porta do 6510</h3>
+            <ul>
+              <li>Os endereços 0 e 1 não são memória, mas uma pequena porta de E/S dentro da CPU.</li>
+              <li>Os bits 0-2 dizem ao PLA o que mostrar: o BASIC, o KERNAL, a ROM de caracteres, a E/S ou a RAM por baixo.</li>
+              <li>Os bits 3-5 controlam o Datasette: o dado de saída, o sensor do PLAY e o motor.</li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+
+      <section id="tramiel" class="chapter">
+        <h2><span>2</span>A Commodore de Jack Tramiel</h2>
+        <p>
+          <b>Jack Tramiel</b> (1928–2012) sobreviveu a Auschwitz, emigrou para
+          os Estados Unidos, aprendeu a consertar máquinas de escrever no
+          Exército americano e abriu uma oficina de máquinas de escrever em
+          Nova York, que virou a <b>Commodore Business Machines</b>, em
+          Toronto, em 1958. A Commodore fez máquinas de escrever, depois
+          máquinas de somar, depois calculadoras; quando a Texas Instruments
+          passou a fabricar suas próprias calculadoras e a vendê-las abaixo do
+          preço da Commodore, Tramiel decidiu nunca mais depender dos chips
+          dos outros. Em 1976 a Commodore comprou a MOS Technology, e com ela o
+          6502 e Chuck Peddle.
+        </p>
+        <p>
+          Peddle construiu o <b>PET 2001</b> (1977), um dos primeiros
+          computadores vendidos montados, com monitor e gravador de fita numa
+          só caixa. O <b>VIC-20</b> (1980 no Japão, 1981 no resto do mundo) era
+          barato e colorido, tinha William Shatner na propaganda, e foi o
+          primeiro computador a vender um milhão. O lema de Tramiel era
+          "computadores para as massas, não para as classes". O outro, como os
+          engenheiros do C64 lembravam, era que negócio é guerra.
+        </p>
+      </section>
+
+      <section id="chips" class="chapter">
+        <h2><span>3</span>Dois chips em busca de um computador</h2>
+        <div class="cols">
+          <div>
+            <p>
+              Em 1981 os engenheiros da MOS projetaram dois chips pensados para
+              videogames e fliperamas: um chip de vídeo, o <b>VIC-II</b> (Al
+              Charpentier), e um de som, o <b>SID</b> (Bob Yannes). Em novembro
+              de 1981 Tramiel aceitou construir um computador em torno deles,
+              com 64 kilobytes de RAM, quando 64K era muito. A equipe tinha um
+              protótipo funcionando para a Consumer Electronics Show de Las
+              Vegas, em janeiro de 1982, uns dois meses depois.
+            </p>
+            <p>
+              O C64 chegou às lojas em agosto de 1982 por <b>595 dólares</b>.
+              Seu BASIC era o <b>BASIC V2</b>, o BASIC da Microsoft para o 6502,
+              que a Commodore tinha licenciado para o PET por um pagamento
+              único, segundo se conta de 25 mil dólares. Ele não tinha comandos
+              para o vídeo nem para o som: isso era PEEK e POKE nos registradores
+              dos chips, e os programadores sabiam os endereços de cor: 53280
+              para a borda, 53281 para o fundo, 54272 para o SID.
+            </p>
+            <p>
+              Um irmão simplificado, o <b>Commodore MAX Machine</b> (ou
+              <i>Ultimax</i>), foi vendido no Japão em 1982 como console de jogos,
+              com 2K de RAM, rodando os cartuchos sem KERNAL nenhum. Fracassou,
+              mas todo C64 ainda tem o seu mapa de memória: um cartucho que põe
+              a linha GAME em nível baixo deixa o C64 em <b>modo Ultimax</b>, e
+              os cartuchos EasyFlash dão a partida assim até hoje.
+            </p>
+          </div>
+          <aside class="callout">
+            <h3>READY. <span class="measured">medido</span></h3>
+            <ul>
+              <li><code>38911 BASIC BYTES FREE</code> vai de 0801h a 9FFFh: 40.960 bytes menos os primeiros 2K, menos um.</li>
+              <li>A ROM única do C64C, a 251913-01, tem o BASIC e o KERNAL; sua segunda metade é, byte a byte, o KERNAL 901227-03.</li>
+              <li>Um C64 PAL roda a 985.248 Hz, um NTSC a 1.022.727 Hz: o cristal do VIC-II dividido por 18 e por 14.</li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+
+      <section id="vic" class="chapter">
+        <h2><span>4</span>O VIC-II</h2>
+        <p>
+          O VIC-II desenha 320 × 200 pixels (ou 160 × 200 com quatro cores por
+          célula), numa paleta de 16 cores, e 8 <b>sprites</b> de 24 × 21
+          pixels que vão a qualquer lugar, por cima ou por baixo do texto, e
+          avisam quando encostam uns nos outros ou no fundo. Ele pode
+          interromper a CPU em qualquer linha do raster, então um programa
+          pode trocar cores, modos ou sprites no meio da tela e mostrar mais do
+          que o chip foi feito para mostrar: mais sprites reaproveitando-os,
+          barras coloridas, telas divididas e, enganando a lógica da borda,
+          imagens dentro da própria borda.
+        </p>
+        <p>
+          Ele divide o barramento com a CPU. A cada oitava linha da área de
+          texto (uma <b>bad line</b>) ele precisa de mais 40 ciclos para buscar
+          a próxima linha de caracteres, e para a CPU para isso; cada sprite
+          numa linha toma mais uns ciclos. Os programadores de demos contavam
+          esses ciclos, e o READY-Prompt também conta.
+        </p>
+        <div class="chips">
+          <div class="chip-card"><b>Bad lines <span class="measured">medido</span></b><span>Com a tela ligada, a CPU perde de 40 a 43 ciclos em cada uma das 25 bad lines do quadro; com a tela desligada (DEN = 0), nenhum.</span></div>
+          <div class="chip-card"><b>O quadro</b><span>PAL: 312 linhas de 63 ciclos, 19.656 ciclos, 50,12 quadros por segundo. NTSC: 263 linhas de 65 ciclos.</span></div>
+          <div class="chip-card"><b>Sprites <span class="measured">medido</span></b><span>Um sprite em X = 24 começa na primeira coluna do texto; sua primeira linha é a seguinte ao seu Y, e ele ocupa 21 linhas (42 expandido).</span></div>
+          <div class="chip-card"><b>A borda aberta</b><span>Mude para 24 linhas de texto entre as linhas 247 e 251 e a borda nunca começa: as bordas de baixo e de cima se abrem, mostrando sprites e o byte de 3FFFh.</span></div>
+        </div>
+      </section>
+
+      <section id="sid" class="chapter">
+        <h2><span>5</span>O SID</h2>
+        <div class="cols">
+          <div>
+            <p>
+              Bob Yannes, que gostava de sintetizadores, queria que o SID fosse
+              um. Ele tem três vozes, cada uma com quatro formas de onda
+              (triangular, dente de serra, pulso de qualquer largura e ruído),
+              seu próprio envelope (ataque, decaimento, sustentação, relaxamento),
+              modulação em anel e sincronismo, e um <b>filtro</b> passa-baixa,
+              passa-faixa ou passa-alta, com ressonância, por onde qualquer voz
+              pode passar.
+            </p>
+            <p>
+              O filtro era analógico e não havia dois chips que soassem iguais.
+              No <b>6581</b> original, mudar o volume também mexia num nível de
+              tensão contínua, o que deixou os programadores tocarem som
+              digitalizado por ele (a voz de <i>Ghostbusters</i>, a bateria de
+              muitas músicas posteriores); o <b>8580</b> do C64C corrigiu isso, e
+              assim quase perdeu o truque. Compositores como Rob Hubbard, Martin
+              Galway e Ben Daglish o tornaram famoso, e música de SID ainda é
+              composta e tocada.
+            </p>
+          </div>
+          <aside class="callout">
+            <h3>Os números</h3>
+            <ul>
+              <li>Frequência = registrador × clock ÷ 2<sup>24</sup>: 7493 é o lá de 440 Hz numa máquina PAL.</li>
+              <li>O ataque mais rápido são 255 passos de 9 ciclos, uns 2 ms.</li>
+              <li>O contador de taxa do envelope compara por igualdade: baixe a taxa no meio da contagem e ele dá a volta inteira, o "bug do ADSR" com que os músicos aprenderam a conviver.</li>
+              <li>A saída da voz 3 pode ser lida em 54299; com ruído, é o gerador de números aleatórios de muitos jogos.</li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+
+      <section id="war" class="chapter">
+        <h2><span>6</span>A guerra de preços</h2>
+        <p>
+          A Commodore fazia seus próprios chips, então podia baixar os preços
+          mais do que qualquer um. Em 1983 baixou de novo e de novo, e deu
+          desconto a quem trocasse qualquer computador, ou console de
+          videogame, por um C64. A Texas Instruments, que anos antes tinha
+          começado a guerra das calculadoras, perdeu centenas de milhões com o
+          TI-99/4A e saiu do mercado de computadores domésticos em outubro de
+          1983. Nessa altura o C64 custava uns 200 dólares, em lojas de
+          brinquedos e de departamentos além das de informática.
+        </p>
+        <p>
+          Em janeiro de 1984, depois de uma briga com o presidente do conselho
+          da Commodore, Irving Gould, Tramiel deixou a empresa que tinha
+          fundado. Em poucos meses comprou a divisão de computadores da Atari,
+          e vários engenheiros da Commodore foram com ele.
+        </p>
+      </section>
+
+      <section id="storage" class="chapter">
+        <h2><span>7</span>Fita, disquete e paciência</h2>
+        <div class="cols">
+          <div>
+            <p>
+              Os programas vinham em fita cassete, tocada no <b>Datasette</b>, um
+              gravador que só as máquinas da Commodore usavam: o próprio
+              computador mede o tempo entre os pulsos na fita. O formato do
+              KERNAL grava cada bloco duas vezes, então um programa carregava a
+              uns 50 bytes por segundo. Os jogos traziam seus próprios
+              <b>turbo loaders</b>, dez vezes mais rápidos, muitas vezes com uma
+              imagem e música enquanto a fita tocava.
+            </p>
+            <p>
+              O drive de disquete <b>1541</b> era um computador inteiro, com um
+              6502, 2K de RAM e seu próprio DOS em ROM, falando com o C64 por um
+              barramento serial tão cauteloso que também era lento: algumas
+              centenas de bytes por segundo. Cartuchos e programas de carga
+              rápida que reprogramavam a CPU do drive resolviam isso, e viraram
+              uma indústria.
+            </p>
+          </div>
+          <aside class="callout">
+            <h3>Na fita <span class="measured">medido</span></h3>
+            <ul>
+              <li>Um bit são dois pulsos: curto-médio para 0, médio-curto para 1 (391, 537 e 700 µs no PAL).</li>
+              <li>Um byte é uma marca longo-médio, 8 bits e um bit de paridade: uns 9.400 ciclos.</li>
+              <li>Um arquivo é um preâmbulo de 10 segundos, o cabeçalho duas vezes, um preâmbulo de 2 segundos, os dados duas vezes.</li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+
+      <section id="scene" class="chapter">
+        <h2><span>8</span>A cena</h2>
+        <p>
+          Os jogos crackeados vinham com uma intro de quem os crackeou, e as
+          intros cresceram até virar <b>demos</b>: programas que só existiam
+          para se exibir, com mais cores, sprites e truques de borda do que
+          alguém achava que os chips aguentavam, e uma música no SID. A cena
+          demo que começou no C64 em meados dos anos 1980 ainda lança
+          produções novas para ele todo ano, e seu arquivo, o
+          <a href="https://csdb.dk">CSDb</a>, lista dezenas de milhares delas.
+        </p>
+      </section>
+
+      <section id="end" class="chapter">
+        <h2><span>9</span>O C64C, e o fim</h2>
+        <p>
+          Em 1986 o C64 ganhou uma caixa mais fina e mais leve, como a do
+          Commodore 128, o <b>C64C</b>, e depois uma placa mais barata com
+          menos chips: o BASIC e o KERNAL numa só ROM, a 251913-01 cuja imagem
+          o READY-Prompt roda, e o SID 8580. A Commodore o fabricou até falir,
+          em abril de 1994. Quantos foram vendidos é discutido: as estimativas
+          vão de uns 12,5 a 17 milhões, o que o torna, pela conta do Guinness,
+          o modelo de computador mais vendido.
+        </p>
+      </section>
+
+      <section id="brazil" class="chapter">
+        <h2><span>10</span>E no Brasil?</h2>
+        <p>
+          Até onde sabemos, o C64 nunca foi fabricado nem vendido oficialmente
+          no Brasil. A partir de 1984 a Lei de Informática reservou o mercado
+          de microcomputadores para empresas brasileiras, que faziam clones das
+          máquinas que conseguiam copiar: os Sinclair (os TK da Microdigital,
+          tema do K-Prompt, irmão do READY-Prompt), os MSX (o Expert da
+          Gradiente e o Hotbit da Sharp, no Ok-Prompt) e os Apple II. Um C64 no
+          Brasil tinha vindo numa mala, do exterior, com sua imagem PAL ou NTSC
+          a ser adaptada à TV PAL-M de casa.
+        </p>
+      </section>
+
+      <section id="emulation" class="chapter">
+        <h2><span>11</span>Como o READY-Prompt o emula</h2>
+        <p class="intro">
+          O READY-Prompt roda as ROMs verdadeiras em chips emulados, um ciclo
+          de barramento por vez: cada acesso à memória que a CPU faz roda antes
+          um ciclo do VIC-II, das CIAs e do resto.
+        </p>
+        <div class="chips">
+          <div class="chip-card"><b>O 6510</b><span>Cada instrução faz os mesmos acessos ao barramento que o chip real, leituras e escritas fantasmas incluídas, e também os opcodes não documentados. Os testes de passo único de Tom Harte o conferem ciclo a ciclo.</span></div>
+          <div class="chip-card"><b>O PLA</b><span>Qual chip responde em cada endereço vem das equações lidas do 82S100 de um C64 real por Jens Schönfeld, Marko Mäkelä e Mark Smith, avaliadas como estão escritas.</span></div>
+          <div class="chip-card"><b>O VIC-II</b><span>Cada ciclo faz suas buscas (ponteiros e dados de sprites, caracteres, gráficos), ajusta o BA para a CPU e desenha seus 8 pixels com os registradores como estão, seguindo a descrição do chip de Christian Bauer.</span></div>
+          <div class="chip-card"><b>As CIAs</b><span>Temporizadores com os atrasos de partida, carga e interrupção do chip real; o relógio a partir dos 50 ou 60 Hz da rede; o teclado lido nos dois sentidos.</span></div>
+          <div class="chip-card"><b>O SID</b><span>Osciladores, envelopes como no reSID, com o bug do ADSR, um filtro para cada modelo, e o nível de volume do 6581 para os sons digitalizados.</span></div>
+          <div class="chip-card"><b>Fitas</b><span>Os pulsos vão à linha FLAG da CIA1, lidos pelo KERNAL ou por um turbo loader; arquivos no formato do KERNAL também podem carregar na hora.</span></div>
+          <div class="chip-card"><b>O 1541</b><span>Um drive virtual responde às rotinas seriais do KERNAL, então LOAD, SAVE, OPEN e o canal 15 se comportam como com um 1541. Cargas rápidas que reprogramam o drive precisam de um de verdade.</span></div>
+          <div class="chip-card"><b>Cartuchos</b><span>Arquivos .crt, com a troca de bancos dos cartuchos Ocean, Magic Desk, System 3, Dinamic e EasyFlash.</span></div>
+          <div class="chip-card"><b>O SwiftLink</b><span>Um 6551 em $DE00 na NMI, ligado a um modem Hayes que chega aos BBS por telnet.</span></div>
+        </div>
+      </section>
+
+      <section id="siblings" class="chapter try">
+        <h2><span>12</span>Os irmãos</h2>
+        <p>
+          O READY-Prompt é o quarto de uma família, cada um com o nome do
+          prompt em que sua máquina espera.
+          <a href="https://a-prompt.stern.workers.dev"><b>A-Prompt</b></a> roda o
+          CP/M e seu <code>A&gt;</code>;
+          <a href="https://ok-prompt.stern.workers.dev"><b>Ok-Prompt</b></a> é um
+          MSX, que responde <code>Ok</code>;
+          <a href="https://k-prompt.stern.workers.dev"><b>K-Prompt</b></a> é um ZX
+          Spectrum com seu K piscando. Todos ligam para BBS por um modem
+          telnet, e podem ligar para um BBS de IA (<code>ATDT AI</code>) cujo
+          sysop é o DeepSeek e que escreve programas para a máquina que liga.
+        </p>
+        <a class="cta" href="../">Ligue o C64 →</a>
+      </section>
+
+      <section id="sources" class="chapter sources">
+        <h2>Fontes</h2>
+        <ul>
+          <li>Wikipedia: <a href="https://en.wikipedia.org/wiki/Commodore_64">Commodore 64</a>, <a href="https://pt.wikipedia.org/wiki/Commodore_64">Commodore 64 (português)</a>, <a href="https://en.wikipedia.org/wiki/MOS_Technology_6502">MOS Technology 6502</a>, <a href="https://en.wikipedia.org/wiki/Jack_Tramiel">Jack Tramiel</a>, <a href="https://en.wikipedia.org/wiki/Chuck_Peddle">Chuck Peddle</a>, <a href="https://en.wikipedia.org/wiki/VIC-20">VIC-20</a>, <a href="https://en.wikipedia.org/wiki/Commodore_MAX_Machine">Commodore MAX Machine</a>, <a href="https://en.wikipedia.org/wiki/MOS_Technology_VIC-II">VIC-II</a>, <a href="https://en.wikipedia.org/wiki/MOS_Technology_SID">SID</a>, <a href="https://en.wikipedia.org/wiki/Commodore_1541">Commodore 1541</a>, <a href="https://en.wikipedia.org/wiki/Commodore_Datasette">Datasette</a>, <a href="https://pt.wikipedia.org/wiki/Reserva_de_mercado_de_inform%C3%A1tica">Reserva de mercado de informática</a></li>
+          <li>Brian Bagnall, <i>On the Edge: The Spectacular Rise and Fall of Commodore</i> (2005)</li>
+          <li>Christian Bauer, "The MOS 6567/6569 video controller (VIC-II) and its application in the Commodore 64" (1996)</li>
+          <li>Marko Mäkelä e outros, "C64 PLA logic equations" (1994-95), em <code>docs/pla.txt</code></li>
+          <li>Dag Lem, reSID; <a href="https://vice-emu.sourceforge.io/">VICE</a>; Tom Harte, <a href="https://github.com/SingleStepTests/65x02">SingleStepTests</a></li>
+          <li>Medições: os testes do READY-Prompt com as ROMs verdadeiras (<code>tests/c64.test.ts</code>, <code>vic.test.ts</code>, <code>sid.test.ts</code>, <code>tape.test.ts</code>)</li>
+        </ul>
+      </section>
+
+      <footer class="foot">
+        READY-Prompt · © 2026 Eduardo Stern ·
+        Commodore e Commodore 64 são marcas de seus donos
+      </footer>
+    </div>
+    <script type="module" src="../src/history.ts"></script>
+  </body>
+</html>

@@ -13,10 +13,12 @@ npm test                         # vitest
 npx tsc --noEmit                 # typecheck (npm run build also runs it)
 npm run build                    # static site in dist/
 npm run deploy                   # build + wrangler deploy (only when the user says so)
+DORMANN=1 npx vitest run tests/dormann.test.ts   # Klaus Dormann's 6502 test (downloaded, GPL)
 npm run term                     # reassemble programs/TERM.asm into src/programs/TERM.prg (commit both)
 ```
 
-Run `npx tsc --noEmit` and `npm test` before every commit.
+Run `npx tsc --noEmit` and `npm test` before every commit; DORMANN=1 after
+any change to `src/cpu6510.ts` (the Harte tests run in `npm test`).
 
 ## Workflow
 
@@ -51,6 +53,7 @@ Run `npx tsc --noEmit` and `npm test` before every commit.
 | `src/ai/aiboard.ts`, `check.ts`, `deepseek.ts`, `telnet-server.ts` | The AI board behind ATDT AI (K-Prompt's, 38 columns): chat, BOFH, programs in BASIC V2 or 6502 (as65 syntax, `* = $080D` behind 10 SYS 2061) checked on a hidden C64, delivered to the disk in drive 8; fixes a BASIC program read from that disk |
 | `src/main.ts` | Page wiring, frame loop, keys, joystick (arrows + Right Ctrl), gamepad, program slot, shelf, listing dialog, `?prg=`/`?file=` links |
 | `src/ui/` | From K-Prompt: audio, power switch, sound output, confirm dialog, call sound, modem audio; `modem-line.ts` (from Ok-Prompt: gateway, else relay); `store.ts` (IndexedDB `ready-prompt`: shelf, tape, disk:n, cart, quick) |
+| `history.html`, `manual.html`, `pt/*.html`, `src/history.css` | The C64 story and the manual, English and Portuguese (Vite entries); facts sourced, or measured by the tests |
 | `src/roms/` | BASIC 901226-01, KERNAL 901227-03, characters 901225-01 (see its README) |
 
 ## C64 facts that are easy to get wrong

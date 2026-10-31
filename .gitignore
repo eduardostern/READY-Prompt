@@ -7,3 +7,4 @@ coverage/
 .wrangler/
 .env
 .env.*
+tests/fixtures/.cache/

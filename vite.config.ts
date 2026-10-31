@@ -13,6 +13,10 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
+        history: resolve(__dirname, 'history.html'),
+        manual: resolve(__dirname, 'manual.html'),
+        historyPt: resolve(__dirname, 'pt/history.html'),
+        manualPt: resolve(__dirname, 'pt/manual.html'),
       },
     },
   },

@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <title>Manual · READY-Prompt</title>
+    <meta name="description" content="How to use READY-Prompt: programs and listings, the keyboard and joystick, tapes, disks, cartridges, save states, the modem, TERM and the AI board." />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+  </head>
+  <body class="history">
+    <div class="doc">
+      <nav class="doc-nav">
+        <a href="./" class="brand-sm">READY-Prompt<span class="cursor"></span></a>
+        <span class="doc-links"><a href="./pt/manual.html" class="doc-back" hreflang="pt-BR" lang="pt-BR">Português</a> <a href="./history.html" class="doc-back">History</a> <a href="./" class="doc-back">← Back to the C64</a></span>
+      </nav>
+
+      <header class="doc-head">
+        <span class="kicker">Owner's manual</span>
+        <h1>Using READY-Prompt</h1>
+        <p class="lede">
+          A Commodore 64 in your browser, with its own BASIC, a Datasette, two
+          1541 drives, the cartridge port and a modem. Everything you load
+          stays in this browser for next time.
+        </p>
+        <ol class="toc">
+          <li><a href="#start">Getting started</a></li>
+          <li><a href="#machine">The machine</a></li>
+          <li><a href="#programs">Programs and listings</a></li>
+          <li><a href="#keyboard">Keyboard and joystick</a></li>
+          <li><a href="#tapes">Tapes</a></li>
+          <li><a href="#disks">Disks</a></li>
+          <li><a href="#carts">Cartridges</a></li>
+          <li><a href="#states">Save states</a></li>
+          <li><a href="#modem">The modem, TERM and the AI board</a></li>
+          <li><a href="#storage">What the browser keeps</a></li>
+          <li><a href="#software">Where to find software</a></li>
+          <li><a href="#trouble">When something does not work</a></li>
+        </ol>
+      </header>
+
+      <section id="start" class="chapter">
+        <h2><span>1</span>Getting started</h2>
+        <div class="cols">
+          <div>
+            <ol class="facts">
+              <li>Open the page and press a key or click the screen: the C64 switches on (browsers only allow sound after that). Tick <b>Power on by itself</b> in the Machine panel to skip this next time.</li>
+              <li>It starts as a C64 did: <code>**** COMMODORE 64 BASIC V2 ****</code>, <code>38911 BASIC BYTES FREE</code> and <code>READY.</code> Type <code>PRINT "HELLO"</code> and press Enter.</li>
+              <li>Drop a program, tape, disk or cartridge anywhere on the page (or inside a <code>.zip</code>): it loads and runs.</li>
+            </ol>
+          </div>
+          <aside class="callout">
+            <h3>The panels</h3>
+            <ul>
+              <li><b>Machine</b> (left): power, reset, the model, speed, tape options, save states, the listing dialog.</li>
+              <li><b>Centre</b>: the monitor, then the program slot, the cartridge port, the Datasette and drives 8 and 9, the on-screen keyboard and the shelf.</li>
+              <li><b>Settings</b> (right): display, sound and the SID chip, the modem, the AI board, the joystick.</li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+
+      <section id="machine" class="chapter">
+        <h2><span>2</span>The machine</h2>
+        <p>
+          <b>PAL</b> is the European C64: 50 frames a second, 985 kHz, 312
+          lines. <b>NTSC</b> is the American one: 60 frames, 1.02 MHz, 263
+          lines. Most European games and demos expect PAL; a few American
+          games run only on NTSC. Changing it restarts the C64.
+        </p>
+        <p>
+          The <b>SID chip</b> menu picks the 6581 of the first C64s or the 8580
+          of the C64C. Tunes written in the 1980s were written for the 6581;
+          it also plays the sampled speech and drums that the 8580 almost
+          silences. <b>Speed</b> runs the machine two or four times faster,
+          without sound.
+        </p>
+      </section>
+
+      <section id="programs" class="chapter">
+        <h2><span>3</span>Programs and listings</h2>
+        <ul class="facts">
+          <li>A <code>.prg</code> (or <code>.p00</code>) goes into memory at its own address when BASIC is ready, and READY-Prompt types <code>RUN</code>. It waits in the <b>Program</b> slot: <b>▶ RUN</b> starts it again from a fresh machine, <b>⤓</b> downloads it.</li>
+          <li><b>✎ Listing</b> takes a BASIC program typed or pasted in, as a magazine printed it, crunches it as the C64's own editor would and runs it. Magazine control codes in braces work: <code>{CLR}</code>, <code>{HOME}</code>, <code>{3 DOWN}</code>, <code>{RED}</code>, <code>{RVS ON}</code>.</li>
+          <li>Pages can link to a program: <code>?prg=</code>, <code>?d64=</code>, <code>?tap=</code>, <code>?crt=</code> or <code>?file=</code> followed by its address loads it on arrival, if the site it is on allows other pages to fetch its files.</li>
+        </ul>
+      </section>
+
+      <section id="keyboard" class="chapter">
+        <h2><span>4</span>Keyboard and joystick</h2>
+        <div class="cols">
+          <div>
+            <p>
+              The PC keyboard types by character, the way the C64 does it:
+              <kbd>"</kbd> is SHIFT + 2 on a C64, and READY-Prompt presses that
+              for you; <kbd>@</kbd>, <kbd>*</kbd>, <kbd>+</kbd>, <kbd>:</kbd> and
+              <kbd>=</kbd> are keys of their own. Letters come out in capitals,
+              as on the C64; SHIFT with a letter gives the graphics printed on
+              the key's front.
+            </p>
+            <p>
+              <b>⌨ Keyboard</b> shows the C64's own keyboard. SHIFT, C= and CTRL
+              stay down until the next key, so one finger can type CTRL + 1
+              (black) or C= + a letter (its graphic).
+            </p>
+            <p>
+              Most games read the <b>joystick in port 2</b>. With a joystick
+              plugged in (the Joystick menu), the arrow keys and Right Ctrl
+              (fire) are the stick, and so is a gamepad. Choose <i>None</i> to
+              get the arrow keys back as cursor keys.
+            </p>
+          </div>
+          <aside class="callout">
+            <h3>Keys</h3>
+            <ul>
+              <li><b>Esc</b>: RUN/STOP. <b>PgUp</b>: RESTORE (RUN/STOP + RESTORE resets the screen).</li>
+              <li><b>Home</b>: CLR/HOME. <b>Backspace</b>: INST/DEL.</li>
+              <li><b>Ctrl</b>, <b>Tab</b>: CTRL. <b>Alt</b>: the Commodore key.</li>
+              <li><b>F1-F8</b>: the C64's function keys.</li>
+              <li><b>F9</b> / <b>F10</b>: quick save / load. <b>PgDn</b>: rewind.</li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+
+      <section id="tapes" class="chapter">
+        <h2><span>5</span>Tapes</h2>
+        <p>
+          A <code>.tap</code> is a recording of the tape, pulse by pulse; a
+          <code>.t64</code> holds files. Either goes in the <b>Datasette</b>, and
+          <b>▶ LOAD</b> resets, presses PLAY and types <code>LOAD</code> and
+          <code>RUN</code>.
+        </p>
+        <ul class="facts">
+          <li>With <b>Load tapes at once</b>, a file in the KERNAL's own format loads instantly. Anything else (games with a <b>turbo loader</b>, which is most of them) plays in real time, as the tape did; <b>Fast-forward while a tape plays</b> runs the C64 as fast as your computer allows meanwhile.</li>
+          <li>Untick <b>Load tapes at once</b> to hear and see the real thing: <code>PRESS PLAY ON TAPE</code>, <code>FOUND</code>, the screen blanking.</li>
+          <li><code>SAVE "NAME"</code> records onto the tape in the deck (<b>＋ Blank</b> inserts an empty one); <b>⤓</b> downloads it as a <code>.tap</code>.</li>
+        </ul>
+      </section>
+
+      <section id="disks" class="chapter">
+        <h2><span>6</span>Disks</h2>
+        <p>
+          A <code>.d64</code> is a 1541 floppy disk. Dropped on the page it goes
+          in <b>drive 8</b>, and READY-Prompt types <code>LOAD"*",8,1</code> and
+          <code>RUN</code>. <b>$</b> lists the directory (<code>LOAD"$",8</code>,
+          then <code>LIST</code>). Drive 9 takes a second disk.
+        </p>
+        <ul class="facts">
+          <li>BASIC talks to the drive as to a 1541: <code>LOAD"NAME",8</code>, <code>SAVE"NAME",8</code>, <code>SAVE"@0:NAME",8</code> to replace a file, <code>OPEN 2,8,2,"DATA,S,W"</code> and <code>PRINT#2</code> for a sequential file.</li>
+          <li>Channel 15 takes commands and gives the drive's error message: <code>OPEN 15,8,15,"S:OLD"</code> scratches a file, <code>"R:NEW=OLD"</code> renames one, <code>"N:NAME,ID"</code> formats the disk; <code>INPUT#15,E,E$</code> reads the message.</li>
+          <li><b>＋ Blank</b> inserts a formatted disk; <b>⤓</b> downloads the disk with everything written to it.</li>
+        </ul>
+      </section>
+
+      <section id="carts" class="chapter">
+        <h2><span>7</span>Cartridges</h2>
+        <p>
+          A <code>.crt</code> goes in the cartridge port and the C64 restarts
+          with it, as it did when you plugged one in with the power off.
+          READY-Prompt runs normal 8K and 16K cartridges, Ultimax ones, and
+          the bank-switching kinds most games and demos came on: Ocean, Magic
+          Desk, System 3, Dinamic, Fun Play, Simons' BASIC and EasyFlash.
+          Freezers such as the Action Replay and the Final Cartridge are not
+          there yet. <b>⏏</b> pulls the cartridge out.
+        </p>
+      </section>
+
+      <section id="states" class="chapter">
+        <h2><span>8</span>Save states</h2>
+        <ul class="facts">
+          <li><b>F9</b> (Quick save) keeps the whole machine as it is, in this browser; <b>F10</b> (Quick load) goes back to it.</li>
+          <li><b>PgDn</b> (Rewind) goes back a second; press it again for more, up to 30 seconds.</li>
+          <li><b>⤓ State</b> downloads the machine as a <code>.rdy</code> file; drop it on the page to go back to that moment. A state holds the machine, not the tape, disks or cartridge: load it with the same ones in place.</li>
+        </ul>
+      </section>
+
+      <section id="modem" class="chapter">
+        <h2><span>9</span>The modem, TERM and the AI board</h2>
+        <div class="cols">
+          <div>
+            <p>
+              Tick <b>SwiftLink modem</b> to plug in a SwiftLink, the RS-232
+              cartridge the C64 terminals of the 1990s used (CCGMS, Novaterm),
+              with a Hayes modem behind it that dials telnet BBSes. It sits in
+              the cartridge port: plugging in a game takes it out.
+            </p>
+            <p>
+              Load <b>TERM.prg</b> from the shelf (it plugs the SwiftLink in
+              by itself). <code>ATI</code> lists the boards, <code>ATDT 1</code>
+              dials the first. TERM starts in ANSI mode, for the PC boards;
+              <b>F1</b> switches to <b>PETSCII</b>, for the Commodore boards,
+              marked (P). <b>F7</b> goes back to BASIC with the call up, and
+              <code>SYS 2061</code> returns.
+            </p>
+            <p>
+              <code>ATDT AI</code> calls the AI board: chat with its sysop
+              (DeepSeek) or with the Bastard Operator From Hell, or order a
+              program in BASIC or machine code. The board tries it on a spare
+              C64 and puts it on the disk in drive 8: press F7 and
+              <code>LOAD"NAME",8</code>. It can also fix a BASIC program of
+              yours: SAVE it to that disk first. It needs your own DeepSeek
+              API key (the AI board panel says how to get one).
+            </p>
+          </div>
+          <aside class="callout">
+            <h3>The modem's commands</h3>
+            <ul>
+              <li><code>ATI</code>: the phone book. <code>ATDT n</code>, <code>ATDT host:port</code>: dial.</li>
+              <li><code>+++</code> (a second's pause either side): back to commands; <code>ATH</code> hangs up, <code>ATO</code> returns to the call.</li>
+              <li><code>ATM0</code> silences the speaker, <code>ATL1-3</code> sets its volume, <code>AT&amp;W</code> keeps them.</li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+
+      <section id="storage" class="chapter">
+        <h2><span>10</span>What the browser keeps</h2>
+        <p>
+          Every file you load waits on the <b>shelf</b>; click one to load it
+          again, <b>✕</b> to take it off. The tape in the Datasette, the disks
+          in the drives (with what was written to them), the cartridge, the
+          quick save and your settings come back on your next visit. All of it
+          stays in this browser (IndexedDB and localStorage); nothing goes to
+          a server, except BBS calls and the AI board's questions to DeepSeek.
+        </p>
+      </section>
+
+      <section id="software" class="chapter">
+        <h2><span>11</span>Where to find software</h2>
+        <ul class="facts">
+          <li><a href="https://csdb.dk">CSDb</a>, the C64 Scene Database: demos, music collections, tools and new games from the scene, most as <code>.prg</code> or <code>.d64</code>.</li>
+          <li><a href="https://www.hvsc.c64.org">The High Voltage SID Collection</a>: the music, as <code>.sid</code> files (the players of which are C64 programs).</li>
+          <li>New commercial and free games are still made for the C64: <a href="https://itch.io/games/tag-commodore-64">itch.io</a> lists many, often with a <code>.d64</code> or <code>.crt</code>.</li>
+          <li>Old games are still under copyright, even when they are no longer sold: use copies you own, or ones their authors have released.</li>
+        </ul>
+      </section>
+
+      <section id="trouble" class="chapter">
+        <h2><span>12</span>When something does not work</h2>
+        <ul class="facts">
+          <li><b>A disk game stops at "LOADING" or crashes</b>: it probably uses a fast loader that runs its own program on the 1541's CPU. READY-Prompt's drive answers the KERNAL, not a 6502 of its own, so those need a real 1541. A <code>.tap</code> or <code>.crt</code> version usually works.</li>
+          <li><b>A game ignores the joystick</b>: try port 1 in the Joystick menu.</li>
+          <li><b>The arrow keys move the stick instead of the cursor</b>: set the joystick to None.</li>
+          <li><b>A game runs too fast or the picture rolls</b>: it may be made for the other TV system: switch between PAL and NTSC.</li>
+          <li><b>No sound</b>: click the page once (browsers need it), and check the volume.</li>
+          <li><b>The C64 is stuck</b>: RUN/STOP + RESTORE (Esc + PgUp) returns to BASIC; Reset restarts it.</li>
+        </ul>
+      </section>
+
+      <footer class="foot">
+        READY-Prompt · © 2026 Eduardo Stern · <a href="./history.html">The Commodore 64 story</a>
+      </footer>
+    </div>
+    <script type="module" src="./src/history.ts"></script>
+  </body>
+</html>
