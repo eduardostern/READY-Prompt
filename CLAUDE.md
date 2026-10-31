@@ -48,6 +48,7 @@ Run `npx tsc --noEmit` and `npm test` before every commit.
 | `src/c64/modem.ts` | K-Prompt's Hayes modem with telnet (same code in all the siblings) |
 | `src/phonebook.ts`, `worker/` | BBSes the relay may reach (`petscii` marks Commodore boards); the Worker's `/relay` WebSocket-to-telnet |
 | `programs/TERM.asm`, `scripts/term.ts`, `build-term.ts` | TERM, the SwiftLink terminal (.prg, SYS 2061): ANSI mode with its own screen in the lower-case set, PETSCII mode through CHROUT; the build writes its tables (row addresses, ASCII/CP437 → screen codes, keys → ASCII) at `;@TABLES` |
+| `src/ai/aiboard.ts`, `check.ts`, `deepseek.ts`, `telnet-server.ts` | The AI board behind ATDT AI (K-Prompt's, 38 columns): chat, BOFH, programs in BASIC V2 or 6502 (as65 syntax, `* = $080D` behind 10 SYS 2061) checked on a hidden C64, delivered to the disk in drive 8; fixes a BASIC program read from that disk |
 | `src/main.ts` | Page wiring, frame loop, keys, joystick (arrows + Right Ctrl), gamepad, program slot, shelf, listing dialog, `?prg=`/`?file=` links |
 | `src/ui/` | From K-Prompt: audio, power switch, sound output, confirm dialog, call sound, modem audio; `modem-line.ts` (from Ok-Prompt: gateway, else relay); `store.ts` (IndexedDB `ready-prompt`: shelf, tape, disk:n, cart, quick) |
 | `src/roms/` | BASIC 901226-01, KERNAL 901227-03, characters 901225-01 (see its README) |
@@ -114,6 +115,8 @@ Run `npx tsc --noEmit` and `npm test` before every commit.
   INSRT (D8h) after every CHROUT. as65's `.text` is ca65's C64 PETSCII
   (capitals become shifted): use `.byte "..."` for text shown in the
   capitals set. tests/term.test.ts fails if TERM.prg is not rebuilt.
+- The AI board's checker counts a program as failing when the screen ends
+  with "?... ERROR", the CPU JAMs, or the banner comes back (a crash).
 - Typing goes into the keyboard buffer (0277h, count C6h); both cases type
   plain letters (listings are upper case).
 

@@ -177,6 +177,38 @@
             </select>
           </label>
 
+          <h2>AI board</h2>
+          <p class="note">
+            In TERM, <code>ATDT AI</code> calls a BBS whose sysop is DeepSeek: chat with it, or
+            with the Bastard Operator From Hell (who may hang up on you), or order a program in
+            BASIC or machine code that it writes, tests on a spare C64 and puts on the disk in
+            drive 8; or have a BASIC program of yours fixed. It needs your own DeepSeek API key.
+          </p>
+          <div class="ai-key">
+            <input id="deepseek-key" type="password" autocomplete="off" spellcheck="false"
+              placeholder="sk-…" aria-label="DeepSeek API key" />
+            <button id="deepseek-show" class="key-btn" type="button">Show</button>
+          </div>
+          <div class="ai-actions">
+            <button id="deepseek-save" class="key-btn" type="button">Save</button>
+            <button id="deepseek-forget" class="key-btn" type="button">Forget</button>
+            <span id="deepseek-status" class="ai-status">No key yet.</span>
+          </div>
+          <details class="ai-howto">
+            <summary>How do I get a key?</summary>
+            <ol>
+              <li>Open <a href="https://platform.deepseek.com" target="_blank" rel="noreferrer">platform.deepseek.com</a> and sign up.</li>
+              <li>Add a little credit on <a href="https://platform.deepseek.com/top_up" target="_blank" rel="noreferrer">Top up</a>; with no balance, calls fail with "insufficient balance".</li>
+              <li>Open <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noreferrer">API keys</a>, create one named "READY-Prompt" and copy it (it starts with <code>sk-</code>).</li>
+              <li>Paste it above and press <b>Save</b>, or type it when the board asks.</li>
+              <li>Load TERM from the shelf, then <code>ATDT AI</code>.</li>
+            </ol>
+          </details>
+          <p class="note">
+            The key stays in this browser and goes only to api.deepseek.com;
+            calls are billed to your DeepSeek account. Forget removes it.
+          </p>
+
           <h2>Controls</h2>
           <label class="field">Joystick
             <select id="joystick">

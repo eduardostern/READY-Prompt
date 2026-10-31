@@ -20,11 +20,17 @@ import { waitForPower, warmUp } from './ui/power';
 import { SoundOut } from './ui/sound-out';
 import { loadQuick, saveQuick, loadCart, saveCart, loadDisk, saveDisk, loadShelf, loadTape, saveTape, shelve, type StoredFile, unshelve } from './ui/store';
 import { Tape } from './c64/tape';
-import { D64, nameString } from './c64/disk';
+import { D64, nameString, petsciiName } from './c64/disk';
 import { Modem } from './c64/modem';
 import { SwiftLink } from './c64/swiftlink';
 import { modemOptions } from './ui/modem-line';
 import termUrl from './programs/TERM.prg?url';
+import { createAiBoard } from './ai/aiboard';
+import { checkAsm, checkBasic } from './ai/check';
+import { streamChat } from './ai/deepseek';
+import { getDeepSeekKey, keyListeners, setDeepSeekKey } from './ui/ai-key';
+import { detokenize } from './c64/basic';
+import type { Link, LinkHandlers } from './c64/modem';
 import { isState, loadState, Rewind, saveState } from './c64/state';
 import { cartridgeFromCrt, CRT_TYPES, type CrtCartridge } from './c64/cartridge';
 
@@ -96,7 +102,12 @@ async function start(): Promise<void> {
   c64.setSidModel(settings.sid);
   const sound = new SoundOut(SAMPLE_RATE);
   // The modem, behind a SwiftLink when one is plugged in.
-  const lineOpts = modemOptions({ speaker: () => ({ on: modem.speaker !== 0, volume: modem.volume }) });
+  /** The AI board, wired up once the drives exist (below). */
+  let aiBoard: ((h: LinkHandlers) => Link) | undefined;
+  const lineOpts = modemOptions({
+    speaker: () => ({ on: modem.speaker !== 0, volume: modem.volume }),
+    aiBoard: h => aiBoard!(h),
+  });
   const modem: Modem = new Modem(lineOpts);
   lineOpts.setup(modem);
   const swiftlink = new SwiftLink(modem, c64.clockHz);
@@ -519,6 +530,58 @@ async function start(): Promise<void> {
     }
   }
   showDisks();
+
+  // ---- the AI board ----------------------------------------------------------
+
+  const roms = { basic, kernal, chargen };
+  aiBoard = handlers => createAiBoard(handlers, {
+    getKey: getDeepSeekKey,
+    setKey: setDeepSeekKey,
+    chat: streamChat,
+    check: (lang, name, source) => (lang === 'basic' ? checkBasic(roms, name, source) : checkAsm(roms, name, source)),
+    deliver: (name, prg) => {
+      // Onto the disk in drive 8 (a fresh one if it is empty), replacing a file of that name.
+      if (!drive(8).disk) insertDisk(8, D64.blank('AI BOARD', 'AI'));
+      const d = drive(8).disk!;
+      const fname = petsciiName(name);
+      const old = d.find(fname);
+      if (old) d.scratch(old);
+      d.write(fname, 2, prg);
+      storeDisk(8);
+      showDisks();
+      void shelve({ name: `${name}.prg`, data: prg }).then(showShelf);
+    },
+    fetch: name => {
+      const d = drive(8).disk;
+      if (!d) return { error: 'There is no disk in drive 8.' };
+      const e = d.find(petsciiName(name));
+      if (!e) return { error: `No ${name} on the disk in drive 8.` };
+      const prg = d.read(e);
+      if (prg[0] !== 0x01 || prg[1] !== 0x08) return { error: `${name} is not a BASIC program.` };
+      const listing = detokenize(prg.subarray(2));
+      return listing.trim() ? { name: nameString(e.name), listing } : { error: `${name} is empty.` };
+    },
+    schedule: (fn, ms) => { window.setTimeout(fn, ms); },
+  });
+
+  const keyInput = $<HTMLInputElement>('deepseek-key');
+  const keyStatus = $('deepseek-status');
+  const showKeyStatus = () => {
+    const k = getDeepSeekKey();
+    keyStatus.textContent = k ? `Saved (${k.length > 8 ? `${k.slice(0, 3)}…${k.slice(-4)}` : '****'}).` : 'No key yet.';
+  };
+  keyListeners.push(showKeyStatus);
+  showKeyStatus();
+  $('deepseek-save').addEventListener('click', () => {
+    const k = keyInput.value.trim();
+    if (k) { setDeepSeekKey(k); keyInput.value = ''; }
+  });
+  $('deepseek-forget').addEventListener('click', () => { setDeepSeekKey(null); keyInput.value = ''; });
+  $('deepseek-show').addEventListener('click', e => {
+    keyInput.type = keyInput.type === 'password' ? 'text' : 'password';
+    (e.target as HTMLElement).textContent = keyInput.type === 'password' ? 'Show' : 'Hide';
+  });
+  keyInput.addEventListener('keydown', e => { if (e.key === 'Enter') $('deepseek-save').click(); });
 
   const shelfList = $('shelf-list');
   const showShelf = async () => {
