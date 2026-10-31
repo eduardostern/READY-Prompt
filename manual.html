@@ -150,6 +150,7 @@
           <li>BASIC talks to the drive as to a 1541: <code>LOAD"NAME",8</code>, <code>SAVE"NAME",8</code>, <code>SAVE"@0:NAME",8</code> to replace a file, <code>OPEN 2,8,2,"DATA,S,W"</code> and <code>PRINT#2</code> for a sequential file.</li>
           <li>Channel 15 takes commands and gives the drive's error message: <code>OPEN 15,8,15,"S:OLD"</code> scratches a file, <code>"R:NEW=OLD"</code> renames one, <code>"N:NAME,ID"</code> formats the disk; <code>INPUT#15,E,E$</code> reads the message.</li>
           <li><b>＋ Blank</b> inserts a formatted disk; <b>⤓</b> downloads the disk with everything written to it.</li>
+          <li><b>Drive 8</b> (Machine panel) picks the drive. <b>Fast</b> loads at once but only answers the KERNAL. <b>1541-II</b> and <b>1541</b> are the real drives: their own 6502 runs Commodore's DOS and the disk turns under the head, so games with fast loaders load, at the real speed (the page fast-forwards while the drive spins; uncheck it to hear the music of a loader). The drive light is the real one.</li>
         </ul>
       </section>
 
@@ -239,7 +240,8 @@
       <section id="trouble" class="chapter">
         <h2><span>12</span>When something does not work</h2>
         <ul class="facts">
-          <li><b>A disk game stops at "LOADING" or crashes</b>: it probably uses a fast loader that runs its own program on the 1541's CPU. READY-Prompt's drive answers the KERNAL, not a 6502 of its own, so those need a real 1541. A <code>.tap</code> or <code>.crt</code> version usually works.</li>
+          <li><b>A disk game stops at "LOADING" or crashes</b>: it probably uses a fast loader that runs its own program on the 1541's CPU. Set <b>Drive 8</b> to <b>1541-II</b> and load it again. Copy protections that need the exact bits of the original disk will not pass: a <code>.d64</code> keeps only the sectors.</li>
+          <li><b>A very old program behaves oddly</b>: try <b>KERNAL</b> revision 1 or 2, the ones of the first C64s.</li>
           <li><b>A game ignores the joystick</b>: try port 1 in the Joystick menu.</li>
           <li><b>The arrow keys move the stick instead of the cursor</b>: set the joystick to None.</li>
           <li><b>A game runs too fast or the picture rolls</b>: it may be made for the other TV system: switch between PAL and NTSC.</li>

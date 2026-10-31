@@ -7,6 +7,11 @@ import { unzipSync } from 'fflate';
 import basicUrl from './roms/basic.901226-01.bin?url';
 import kernalUrl from './roms/kernal.901227-03.bin?url';
 import chargenUrl from './roms/characters.901225-01.bin?url';
+import kernal1Url from './roms/kernal.901227-01.bin?url';
+import kernal2Url from './roms/kernal.901227-02.bin?url';
+import dos1541IIUrl from './roms/1541-II.251968-03.bin?url';
+import dos1541LoUrl from './roms/1541-c000.325302-01.bin?url';
+import dos1541HiUrl from './roms/1541-e000.901229-05.bin?url';
 import { C64, JOY_DOWN, JOY_FIRE, JOY_LEFT, JOY_RIGHT, JOY_UP, type Model } from './c64/machine';
 import { KeyInput, KEYS, type Key } from './c64/keyboard';
 import { LAYOUT, MODIFIERS } from './c64/legend';
@@ -61,11 +66,19 @@ interface Settings {
   fastTape: boolean;
   turboTape: boolean;
   swiftlink: boolean;
+  /** KERNAL revision: 1 and 2 are the first C64s' (1982-83), 3 every one after. */
+  kernal: 1 | 2 | 3;
+  /** Drive 8: the virtual drive (loads at once) or a real 1541 running its own DOS. */
+  drive: 'fast' | '1541' | '1541-II';
+  turboDisk: boolean;
 }
+
+const KERNALS = { 1: kernal1Url, 2: kernal2Url, 3: kernalUrl } as const;
 
 const DEFAULTS: Settings = {
   model: 'pal', speed: 1, smooth: false, scanlines: true, curve: true, flicker: false, humbar: false, autoPower: false,
   volume: 70, sid: '6581', joystick: 2, keyboard: false, fastTape: true, turboTape: true, swiftlink: false,
+  kernal: 3, drive: 'fast', turboDisk: true,
 };
 
 function loadSettings(): Settings {
@@ -74,6 +87,8 @@ function loadSettings(): Settings {
     if (s.model !== 'pal' && s.model !== 'ntsc') s.model = 'pal';
     if (s.sid !== '6581' && s.sid !== '8580') s.sid = '6581';
     if (![0, 1, 2].includes(s.joystick)) s.joystick = 2;
+    if (![1, 2, 3].includes(s.kernal)) s.kernal = 3;
+    if (!['fast', '1541', '1541-II'].includes(s.drive)) s.drive = 'fast';
     return s;
   } catch {
     return { ...DEFAULTS };
@@ -89,8 +104,20 @@ const save = () => {
   }
 };
 
+const fetched = new Map<string, Promise<Uint8Array>>();
 async function bytes(url: string): Promise<Uint8Array> {
-  return new Uint8Array(await (await fetch(url)).arrayBuffer());
+  if (!fetched.has(url)) fetched.set(url, fetch(url).then(async r => new Uint8Array(await r.arrayBuffer())));
+  return fetched.get(url)!;
+}
+
+/** The DOS ROM of a real drive: the 1541-II's one chip, or the first 1541's two. */
+async function dosRom(drive: Settings['drive']): Promise<Uint8Array | null> {
+  if (drive === '1541-II') return bytes(dos1541IIUrl);
+  if (drive !== '1541') return null;
+  const [lo, hi] = await Promise.all([bytes(dos1541LoUrl), bytes(dos1541HiUrl)]);
+  const rom = new Uint8Array(0x4000);
+  rom.set(lo); rom.set(hi, 0x2000);
+  return rom;
 }
 
 // ---- start ------------------------------------------------------------------
@@ -98,6 +125,8 @@ async function bytes(url: string): Promise<Uint8Array> {
 async function start(): Promise<void> {
   const [basic, kernal, chargen] = await Promise.all([bytes(basicUrl), bytes(kernalUrl), bytes(chargenUrl)]);
   const c64 = new C64({ basic, kernal, chargen });
+  if (settings.kernal !== 3) { c64.kernal = await bytes(KERNALS[settings.kernal]); c64.reset(true); }
+  c64.setDrive1541(await dosRom(settings.drive));
   if (settings.model !== 'pal') c64.setModel(settings.model);
   c64.setSidModel(settings.sid);
   const sound = new SoundOut(SAMPLE_RATE);
@@ -180,6 +209,24 @@ async function start(): Promise<void> {
   bindCheck('auto-power', 'autoPower');
   bindCheck('fast-tape', 'fastTape');
   bindCheck('turbo-tape', 'turboTape');
+  bindCheck('turbo-disk', 'turboDisk');
+  const kernalSel = $<HTMLSelectElement>('kernal');
+  kernalSel.value = String(settings.kernal);
+  kernalSel.addEventListener('change', async () => {
+    settings.kernal = Number(kernalSel.value) as Settings['kernal'];
+    save();
+    c64.kernal = await bytes(KERNALS[settings.kernal]);
+    c64.reset(true);
+    rewind.clear();
+  });
+  const driveSel = $<HTMLSelectElement>('drive-model');
+  driveSel.value = settings.drive;
+  driveSel.addEventListener('change', async () => {
+    settings.drive = driveSel.value as Settings['drive'];
+    save();
+    c64.setDrive1541(await dosRom(settings.drive));
+    rewind.clear();
+  });
   const swiftBox = $<HTMLInputElement>('swiftlink');
   const setSwiftlink = (on: boolean) => {
     settings.swiftlink = on;
@@ -492,7 +539,7 @@ async function start(): Promise<void> {
     void saveDisk(n, d ? { name: d.name, data: d.data } : null);
   };
   const insertDisk = (n: number, d: D64 | null, store = true) => {
-    drive(n).insert(d);
+    c64.insertDisk(n, d);
     if (store) storeDisk(n);
     showDisks();
   };
@@ -516,6 +563,7 @@ async function start(): Promise<void> {
       c64.type(`LOAD"$",${n}\rLIST\r`);
     });
     $(`disk${n}-save`).addEventListener('click', () => {
+      if (n === 8) c64.drive1541?.flush();
       const d = drive(n).disk;
       if (d) download(d.name.replace(/\.d64$/i, '') + '.d64', d.data);
     });
@@ -547,11 +595,13 @@ async function start(): Promise<void> {
       const old = d.find(fname);
       if (old) d.scratch(old);
       d.write(fname, 2, prg);
+      c64.diskChanged(8);
       storeDisk(8);
       showDisks();
       void shelve({ name: `${name}.prg`, data: prg }).then(showShelf);
     },
     fetch: name => {
+      c64.drive1541?.flush();
       const d = drive(8).disk;
       if (!d) return { error: 'There is no disk in drive 8.' };
       const e = d.find(petsciiName(name));
@@ -777,10 +827,11 @@ async function start(): Promise<void> {
     if (!running) { owed = 0; return; }
     pollPad();
     let ran = 0;
-    if (settings.turboTape && c64.tapeRunning) {
-      // While the tape turns, run as fast as the host allows (no sound).
+    const spinning = () => (settings.turboTape && c64.tapeRunning) || (settings.turboDisk && !!c64.drive1541?.motor);
+    if (spinning()) {
+      // While the tape or the real drive turns, run as fast as the host allows (no sound).
       const until = now + 12;
-      while (performance.now() < until && c64.tapeRunning) { c64.runFrame(); ran++; }
+      while (performance.now() < until && spinning()) { c64.runFrame(); ran++; }
       c64.takeAudio();
       owed = 0;
     } else {
@@ -799,7 +850,8 @@ async function start(): Promise<void> {
     for (const n of [8, 9]) {
       const dr = drive(n);
       if (dr.busy > 0) dr.busy = Math.max(0, dr.busy - ran);
-      $(`lamp${n}`).classList.toggle('on', dr.busy > 0);
+      const real = n === 8 ? c64.drive1541 : null;
+      $(`lamp${n}`).classList.toggle('on', real ? real.led : dr.busy > 0);
     }
     statFrames += ran;
     if (now - statTime >= 1000) {

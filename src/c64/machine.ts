@@ -15,6 +15,8 @@ import { BASIC, CHAROM, cpuMap, IO, KERNAL, NONE, RAM, ROMH, ROML, vicChip } fro
 import { Sid, type SidModel } from './sid';
 import { Tape } from './tape';
 import { Drive } from './drive';
+import type { D64 } from './disk';
+import { Drive1541, DRIVE_HZ, LineLog } from './drive1541';
 import type { SwiftLink } from './swiftlink';
 import { NTSC, PAL, Vic, type VicTiming } from './vic';
 
@@ -100,6 +102,14 @@ export class C64 {
   readonly drives = [new Drive(8), new Drive(9)];
   /** The SwiftLink modem at DE00h-DE03h (beside any cartridge, as on a port expander). */
   swiftlink: SwiftLink | null = null;
+  /** A real 1541 as device 8 (its own CPU and DOS) in place of the virtual drive 8. */
+  drive1541: Drive1541 | null = null;
+  /** Drive cycles per computer cycle. */
+  private driveStep = DRIVE_HZ / CLOCK.pal;
+  /** Now, in drive cycles: the drive runs a few cycles behind and catches up when the bus is read. */
+  private driveNow = 0;
+  /** The serial lines the computer pulls low (bit 0 ATN, 1 CLK, 2 DATA) over drive time. */
+  private readonly busLog = new LineLog(0);
   /** The drive LISTEN or TALK last addressed (null: a real device, or none). */
   private busDrive: Drive | null = null;
 
@@ -118,10 +128,16 @@ export class C64 {
       readB: out => out & ~this.keys.rows(this.cia1.pinsA) & ~this.joy1,
     });
     this.cia2 = new Cia({
-      // IEC: the C64 drives ATN/CLK/DATA through inverters (bits 3-5);
-      // with no other device the lines read back what it drives (bits 6-7).
-      readA: out => (out & 0x3f) | (out & 0x10 ? 0 : 0x40) | (out & 0x20 ? 0 : 0x80),
+      // IEC: the C64 pulls ATN/CLK/DATA low through inverters (bits 3-5)
+      // and reads CLK and DATA back (bits 6-7), low if anyone pulls them.
+      readA: out => {
+        let low = (out >> 3) & 7;
+        const d = this.drive1541;
+        if (d) { d.runTo(this.driveNow); low |= d.pullsAt(this.driveNow, !!(low & 1)); }
+        return (out & 0x3f) | (low & 2 ? 0 : 0x40) | (low & 4 ? 0 : 0x80);
+      },
       readB: out => out,
+      writeA: pins => this.busLog.push(this.driveNow, (pins >> 3) & 7),
     });
     this.addTrap(0xf4a5, () => this.loadTrap());
     this.addTrap(0xf5ed, () => this.saveTrap());
@@ -152,6 +168,7 @@ export class C64 {
     this.vic.setTiming(m === 'pal' ? PAL : NTSC);
     this.sid.setClock(CLOCK[m]);
     this.swiftlink?.setClock(CLOCK[m]);
+    this.driveStep = DRIVE_HZ / CLOCK[m];
     this.reset(true);
   }
 
@@ -181,6 +198,8 @@ export class C64 {
     this.cart?.reset?.();
     this.updateMode();
     for (const d of this.drives) d.reset();
+    // The reset line runs to the serial bus: the drive starts over too.
+    this.drive1541?.reset();
     this.swiftlink?.reset();
     this.busDrive = null;
     this.typing = [];
@@ -194,6 +213,8 @@ export class C64 {
   /** After a save state went back in: what is derived from the state. */
   afterStateLoad(): void {
     this.updateMode();
+    this.busLog.clear((this.cia2.pinsA >> 3) & 7);
+    if (this.drive1541) { this.drive1541.out.clear(this.drive1541.via1.pinsB); this.driveNow = this.drive1541.cycles; }
     this.typing = [];
     this.onReady = [];
     this.busDrive = null;
@@ -238,6 +259,11 @@ export class C64 {
     this.cia2.tick();
     this.cart?.tick?.();
     this.swiftlink?.tick();
+    const d = this.drive1541;
+    if (d) {
+      this.driveNow += this.driveStep;
+      if (d.cycles < this.driveNow - 8) d.runTo(this.driveNow - 8);
+    }
     if (this.motorOn && this.tapePlay && this.tape && this.tape.tick()) this.cia1.flag();
     this.cycles++;
     if (this.cycles >= this.todNext) {
@@ -348,6 +374,8 @@ export class C64 {
     if (this.onReady.length && this.atPrompt) this.onReady.shift()!();
     this.feedTyping();
     this.sid.advanceTo(this.cycles);
+    // What the real drive wrote goes into the .d64 once its motor stops.
+    if (this.drive1541 && !this.drive1541.motor) this.drive1541.flush();
   }
 
   /** The KERNAL is in its loop waiting for a key (E5CDh-E5D5h) with nothing typed. */
@@ -410,8 +438,37 @@ export class C64 {
 
   // ---- Disk traps ----
 
-  /** The drive for a device number, if it is on the bus. */
+  /**
+   * Plugs a real 1541 in as device 8 (with its DOS ROM), or takes it out
+   * (null) for the virtual drive. The disk in drive 8 moves across.
+   */
+  setDrive1541(rom: Uint8Array | null): void {
+    if (this.drive1541) this.drive1541.insert(null);
+    this.drive1541 = null;
+    this.busDrive = null;
+    if (!rom) return;
+    const d = new Drive1541(rom, t => this.busLog.at(t));
+    d.insert(this.drives[0].disk);
+    this.busLog.clear((this.cia2.pinsA >> 3) & 7);
+    d.reset();
+    this.driveNow = d.cycles;
+    this.drive1541 = d;
+  }
+
+  /** Puts a disk in drive 8 or 9 (null takes it out). */
+  insertDisk(device: number, disk: D64 | null): void {
+    this.drives[device - 8].insert(disk);
+    if (device === 8) this.drive1541?.insert(disk);
+  }
+
+  /** The disk in drive 8 or 9 changed from outside: the real drive's surface follows. */
+  diskChanged(device: number): void {
+    if (device === 8) this.drive1541?.refresh();
+  }
+
+  /** The drive for a device number, if it is on the bus (the virtual ones only). */
   driveFor(device: number): Drive | null {
+    if (device === 8 && this.drive1541) return null;
     const d = this.drives.find(x => x.device === device);
     return d && (d.device === 8 || d.disk) ? d : null;
   }

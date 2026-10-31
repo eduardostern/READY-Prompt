@@ -20,12 +20,14 @@ type Plain = Record<string, unknown>;
 /** Fields that are not state (wiring, ROMs, things rebuilt from the model). */
 const SKIP: Record<string, Set<string>> = {
   machine: new Set(['basic', 'kernal', 'chargen', 'trapAt', 'traps', 'onReady', 'cart', 'tape', 'drives', 'busDrive',
-    'keys', 'cpu', 'vic', 'sid', 'cia1', 'cia2', 'swiftlink', 'typing', 'restore', 'joy1', 'joy2', 'fastTape', 'tapePlay']),
+    'keys', 'cpu', 'vic', 'sid', 'cia1', 'cia2', 'swiftlink', 'drive1541', 'busLog', 'typing', 'restore', 'joy1', 'joy2', 'fastTape', 'tapePlay']),
   cpu: new Set(['read', 'write']),
   vic: new Set(['read', 'frame', 'timing']),
   sid: new Set(['samples', 'sampleRate', 'model']),
   cia: new Set(['ports']),
   cart: new Set(['crt', 'lo', 'hi', 'changed', 'type', 'name']),
+  // The disk surface is the disk's, not the state's (as for the virtual drives).
+  drive: new Set(['rom', 'cpu', 'via1', 'via2', 'disk', 'tracks', 'written', 'computer', 'out']),
 };
 
 function encodeTyped(a: ArrayBufferView & { length: number }): { $t: string; b: string } {
@@ -79,6 +81,8 @@ export interface MachineState {
   machine: Plain; cpu: Plain; vic: Plain; sid: Plain; cia1: Plain; cia2: Plain;
   cart?: Plain;
   tape?: { pos: number; left: number };
+  /** The real 1541, when one is plugged in. */
+  drive?: { drive: Plain; cpu: Plain; via1: Plain; via2: Plain };
 }
 
 /** The machine as it is now. */
@@ -94,6 +98,12 @@ export function captureState(c: C64): MachineState {
     cia2: grab(c.cia2, SKIP.cia),
     cart: c.cart ? grab(c.cart, SKIP.cart) : undefined,
     tape: c.tape ? { pos: c.tape.pos, left: c.tape.left } : undefined,
+    drive: c.drive1541 ? {
+      drive: grab(c.drive1541, SKIP.drive),
+      cpu: grab(c.drive1541.cpu, SKIP.cpu),
+      via1: grab(c.drive1541.via1, SKIP.cia),
+      via2: grab(c.drive1541.via2, SKIP.cia),
+    } : undefined,
   };
 }
 
@@ -109,6 +119,13 @@ export function restoreState(c: C64, s: MachineState): void {
   put(c.cia2, s.cia2, SKIP.cia);
   if (c.cart && s.cart) put(c.cart, s.cart, SKIP.cart);
   if (c.tape && s.tape) { c.tape.pos = s.tape.pos; c.tape.left = s.tape.left; }
+  const d = c.drive1541;
+  if (d && s.drive) {
+    put(d, s.drive.drive, SKIP.drive);
+    put(d.cpu, s.drive.cpu, SKIP.cpu);
+    put(d.via1, s.drive.via1, SKIP.cia);
+    put(d.via2, s.drive.via2, SKIP.cia);
+  }
   c.afterStateLoad();
 }
 

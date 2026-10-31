@@ -321,7 +321,7 @@
           <div class="chip-card"><b>The CIAs</b><span>Timers with the real chip's start, load and interrupt delays; the time of day from the 50 or 60 Hz mains; the keyboard read both ways.</span></div>
           <div class="chip-card"><b>The SID</b><span>Oscillators, envelopes after reSID, with the ADSR bug, a filter for each model, and the 6581's volume level for samples.</span></div>
           <div class="chip-card"><b>Tapes</b><span>Pulses go to CIA1's FLAG line, read by the KERNAL or a turbo loader; KERNAL-format files can also load at once.</span></div>
-          <div class="chip-card"><b>The 1541</b><span>A virtual drive answers the KERNAL's serial routines, so LOAD, SAVE, OPEN and channel 15 behave as with a 1541. Fast loaders that reprogram the drive need a real one.</span></div>
+          <div class="chip-card"><b>The 1541</b><span>Two ways: a virtual drive that answers the KERNAL's serial routines and loads at once, or the real thing, a second 6502 at 1 MHz running Commodore's DOS ROM with two 6522s, the stepper and the disk turning under the head as GCR. Both computers log their bus lines cycle by cycle, so fast loaders that time each bit work.</span></div>
           <div class="chip-card"><b>Cartridges</b><span>.crt files, with the bank switching of Ocean, Magic Desk, System 3, Dinamic and EasyFlash cartridges.</span></div>
           <div class="chip-card"><b>The SwiftLink</b><span>A 6551 at $DE00 on NMI, wired to a Hayes modem that reaches telnet BBSes.</span></div>
         </div>

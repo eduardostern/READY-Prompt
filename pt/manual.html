@@ -149,6 +149,7 @@
           <li>O BASIC fala com o drive como com um 1541: <code>LOAD"NOME",8</code>, <code>SAVE"NOME",8</code>, <code>SAVE"@0:NOME",8</code> para substituir um arquivo, <code>OPEN 2,8,2,"DADOS,S,W"</code> e <code>PRINT#2</code> para um arquivo sequencial.</li>
           <li>O canal 15 recebe comandos e dá a mensagem de erro do drive: <code>OPEN 15,8,15,"S:VELHO"</code> apaga um arquivo, <code>"R:NOVO=VELHO"</code> renomeia, <code>"N:NOME,ID"</code> formata o disquete; <code>INPUT#15,E,E$</code> lê a mensagem.</li>
           <li><b>＋ Blank</b> põe um disquete formatado; <b>⤓</b> baixa o disquete com tudo o que foi gravado nele.</li>
+          <li><b>Drive 8</b> (painel Máquina) escolhe o drive. <b>Rápido</b> carrega na hora, mas só responde ao KERNAL. <b>1541-II</b> e <b>1541</b> são os drives de verdade: o 6502 deles roda o DOS da Commodore e o disquete gira sob a cabeça, então jogos com carga rápida carregam, na velocidade real (a página acelera enquanto o drive gira; desmarque para ouvir a música da carga). A luz do drive é a de verdade.</li>
         </ul>
       </section>
 
@@ -240,7 +241,8 @@
       <section id="trouble" class="chapter">
         <h2><span>12</span>Quando algo não funciona</h2>
         <ul class="facts">
-          <li><b>Um jogo em disquete para em "LOADING" ou trava</b>: provavelmente usa uma carga rápida que roda um programa próprio na CPU do 1541. O drive do READY-Prompt responde ao KERNAL, não tem um 6502 próprio, então esses precisam de um 1541 de verdade. Uma versão em <code>.tap</code> ou <code>.crt</code> costuma funcionar.</li>
+          <li><b>Um jogo em disquete para em "LOADING" ou trava</b>: provavelmente usa uma carga rápida que roda um programa próprio na CPU do 1541. Escolha <b>1541-II</b> em <b>Drive 8</b> e carregue de novo. Proteções contra cópia que precisam dos bits exatos do disquete original não passam: um <code>.d64</code> guarda só os setores.</li>
+          <li><b>Um programa muito antigo se comporta de um jeito estranho</b>: experimente o <b>KERNAL</b> revisão 1 ou 2, as dos primeiros C64.</li>
           <li><b>Um jogo ignora o joystick</b>: tente a porta 1 no menu Joystick.</li>
           <li><b>As setas movem o manche em vez do cursor</b>: ponha o joystick em None.</li>
           <li><b>Um jogo roda rápido demais ou a imagem rola</b>: pode ser feito para o outro sistema de TV: troque entre PAL e NTSC.</li>

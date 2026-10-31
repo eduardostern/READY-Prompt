@@ -37,8 +37,23 @@
               <option value="4">4x</option>
             </select>
           </label>
+          <label class="field">KERNAL
+            <select id="kernal">
+              <option value="3">Revision 3 (1983 on, every C64C)</option>
+              <option value="2">Revision 2 (1982-83)</option>
+              <option value="1">Revision 1 (the first C64s, 1982)</option>
+            </select>
+          </label>
+          <label class="field">Drive 8
+            <select id="drive-model">
+              <option value="fast">Fast: loads at once (no fast loaders)</option>
+              <option value="1541-II">Commodore 1541-II, real DOS</option>
+              <option value="1541">Commodore 1541 (1982), real DOS</option>
+            </select>
+          </label>
           <label class="check"><input type="checkbox" id="fast-tape" /> Load tapes at once</label>
           <label class="check"><input type="checkbox" id="turbo-tape" /> Fast-forward while a tape plays</label>
+          <label class="check"><input type="checkbox" id="turbo-disk" /> Fast-forward while a real drive spins</label>
           <div class="btn-row">
             <button id="quick-save" class="key-btn" type="button" title="Keep the machine as it is now, in this browser (F9)">● Quick save</button>
             <button id="quick-load" class="key-btn" type="button" title="Go back to the quick save (F10)">▶ Quick load</button>

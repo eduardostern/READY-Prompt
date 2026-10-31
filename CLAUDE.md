@@ -44,6 +44,8 @@ any change to `src/cpu6510.ts` (the Harte tests run in `npm test`).
 | `src/c64/tape.ts` | `Tape`: pulse timeline (.tap v0/v1, or .t64 files encoded as the KERNAL writes them), KERNAL-format files decoded with their pulse ranges; `record` for SAVE |
 | `src/c64/disk.ts` | `.d64` (35/40 tracks): BAM, directory, sector chains, 1541 allocation (nearest to track 18, interleave 10), scratch, rename, format |
 | `src/c64/drive.ts` | Virtual 1541 behind the KERNAL's bus routines: channels, LOAD/SAVE, `$` as a BASIC program at 0401h, ,S,R/,P,W/,S,A, @0:, channel 15 (I N S R V, error message) |
+| `src/c64/drive1541.ts` | A real 1541/1541-II as device 8: 6502 + DOS ROM, RAM, VIA1 (bus) and VIA2 (disk), stepper, GCR under the head; `LineLog` (bus lines over time); `setDrive1541(rom)` in the machine |
+| `src/c64/via.ts`, `gcr.ts` | 6522 (timers, CA1/CB1, PA latch, CA2/CB2 out); .d64 ↔ GCR tracks (real lengths per speed zone) |
 | `src/c64/cartridge.ts` | `.crt`: normal 8K/16K/Ultimax, Simons' BASIC, Ocean, Fun Play, System 3, Dinamic, Magic Desk, EasyFlash (RAM at DF00h, flash read-only); `makeCrt` builds one |
 | `src/c64/state.ts` | Save states: `grab`/`put` each chip's plain data (skip lists leave out wiring, ROMs, the frame); `.rdy` = magic + deflated JSON; `Rewind` (a state a second, 30 kept) |
 | `src/c64/swiftlink.ts` | SwiftLink: 6551 at DE00h-DE03h, NMI on receive, doubled baud table (15 = 38400), bytes paced at the baud rate and held until read |
@@ -54,7 +56,7 @@ any change to `src/cpu6510.ts` (the Harte tests run in `npm test`).
 | `src/main.ts` | Page wiring, frame loop, keys, joystick (arrows + Right Ctrl), gamepad, program slot, shelf, listing dialog, `?prg=`/`?file=` links |
 | `src/ui/` | From K-Prompt: audio, power switch, sound output, confirm dialog, call sound, modem audio; `modem-line.ts` (from Ok-Prompt: gateway, else relay); `store.ts` (IndexedDB `ready-prompt`: shelf, tape, disk:n, cart, quick) |
 | `history.html`, `manual.html`, `pt/*.html`, `src/history.css` | The C64 story and the manual, English and Portuguese (Vite entries); facts sourced, or measured by the tests |
-| `src/roms/` | BASIC 901226-01, KERNAL 901227-03, characters 901225-01 (see its README) |
+| `src/roms/` | BASIC 901226-01, KERNALs 901227-01/02/03, characters 901225-01, 1541-II DOS 251968-03, 1541 DOS 325302-01 + 901229-05 (see its README) |
 
 ## C64 facts that are easy to get wrong
 
@@ -100,6 +102,19 @@ any change to `src/cpu6510.ts` (the Harte tests run in `npm test`).
   back as ST 42h (EOI + timeout), which the KERNAL turns into FILE NOT
   FOUND. Drive 9 is on the bus only with a disk in it. Bytes sent to a
   channel whose OPEN failed are dropped and the OPEN's error stays.
+- The real 1541 (drive1541.ts) runs a few cycles behind the C64 and
+  catches up whenever the C64 reads CIA2; each side logs the lines it
+  pulls with a timestamp in drive cycles (`LineLog`) and reads the
+  other's as they were at its own moment. Without that a 2-bit fast
+  loader reads up to 6 cycles off; tests/drive1541.test.ts has one that
+  fails if the timing slips by 6 cycles. While it is on, the disk traps
+  leave device 8 alone (`driveFor`). DATA is also pulled while ATN in ≠
+  ATN acknowledge (VIA1 PB4): the hardware answer to ATN. BYTE READY
+  sets V (the SO pin) only while VIA2 CA2 is high; CB2 low = write.
+  Sync = an FFh byte after an FFh byte. What the drive writes goes back
+  into the .d64 when its motor stops (`flush`), so the store and ⤓ see it.
+- The 1541-II ROM has no track 0 sensor code: the stepper just stops at
+  half track 2. The first 1541's DOS is two chips (C000h + E000h).
 - Directory lines: block count + (4 − digits) spaces (LIST adds one more).
 - Cartridges set GAME/EXROM through `cart.changed` (the machine re-reads
   its PLA mode). The KERNAL starts a cartridge with "CBM80" at 8004h;

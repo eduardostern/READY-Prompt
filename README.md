@@ -17,7 +17,10 @@ prompt. The fourth sibling of [A-Prompt](https://a-prompt.stern.workers.dev)
 - **Tapes**: `.tap` and `.t64` in a Datasette, loaded at once or played in
   real time for turbo loaders; SAVE records onto them.
 - **Disks**: `.d64` in drives 8 and 9, a virtual 1541 behind the KERNAL's
-  serial routines (LOAD, SAVE, `$`, OPEN, channel 15).
+  serial routines (LOAD, SAVE, `$`, OPEN, channel 15) that loads at once;
+  or, as drive 8, a real 1541 or 1541-II: its own 6502 running Commodore's
+  DOS, two 6522s and the disk spinning as GCR, so fast loaders work.
+- **KERNAL** revisions 1, 2 and 3.
 - **Cartridges**: `.crt`, normal and Ultimax, Ocean, Magic Desk, System 3,
   Dinamic, Fun Play, Simons' BASIC, EasyFlash.
 - **Save states**, a quick-save slot and 30 seconds of rewind.

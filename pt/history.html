@@ -325,7 +325,7 @@
           <div class="chip-card"><b>As CIAs</b><span>Temporizadores com os atrasos de partida, carga e interrupção do chip real; o relógio a partir dos 50 ou 60 Hz da rede; o teclado lido nos dois sentidos.</span></div>
           <div class="chip-card"><b>O SID</b><span>Osciladores, envelopes como no reSID, com o bug do ADSR, um filtro para cada modelo, e o nível de volume do 6581 para os sons digitalizados.</span></div>
           <div class="chip-card"><b>Fitas</b><span>Os pulsos vão à linha FLAG da CIA1, lidos pelo KERNAL ou por um turbo loader; arquivos no formato do KERNAL também podem carregar na hora.</span></div>
-          <div class="chip-card"><b>O 1541</b><span>Um drive virtual responde às rotinas seriais do KERNAL, então LOAD, SAVE, OPEN e o canal 15 se comportam como com um 1541. Cargas rápidas que reprogramam o drive precisam de um de verdade.</span></div>
+          <div class="chip-card"><b>O 1541</b><span>Dois jeitos: um drive virtual que responde às rotinas seriais do KERNAL e carrega na hora, ou o de verdade, um segundo 6502 a 1 MHz rodando o DOS da Commodore com dois 6522, o motor de passo e o disquete girando sob a cabeça em GCR. Os dois computadores registram as linhas do barramento ciclo a ciclo, então cargas rápidas que cronometram cada bit funcionam.</span></div>
           <div class="chip-card"><b>Cartuchos</b><span>Arquivos .crt, com a troca de bancos dos cartuchos Ocean, Magic Desk, System 3, Dinamic e EasyFlash.</span></div>
           <div class="chip-card"><b>O SwiftLink</b><span>Um 6551 em $DE00 na NMI, ligado a um modem Hayes que chega aos BBS por telnet.</span></div>
         </div>
