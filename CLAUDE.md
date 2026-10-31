@@ -39,6 +39,8 @@ Run `npx tsc --noEmit` and `npm test` before every commit.
 | `src/c64/basic.ts` | Listing → tokens (first keyword in table order, magazine `{codes}`) → .prg; `detokenize` |
 | `src/c64/prg.ts` | `injectPrg` (bytes + BASIC pointers, as LOAD leaves them), `.p00` |
 | `src/c64/tape.ts` | `Tape`: pulse timeline (.tap v0/v1, or .t64 files encoded as the KERNAL writes them), KERNAL-format files decoded with their pulse ranges; `record` for SAVE |
+| `src/c64/disk.ts` | `.d64` (35/40 tracks): BAM, directory, sector chains, 1541 allocation (nearest to track 18, interleave 10), scratch, rename, format |
+| `src/c64/drive.ts` | Virtual 1541 behind the KERNAL's bus routines: channels, LOAD/SAVE, `$` as a BASIC program at 0401h, ,S,R/,P,W/,S,A, @0:, channel 15 (I N S R V, error message) |
 | `src/main.ts` | Page wiring, frame loop, keys, joystick (arrows + Right Ctrl), gamepad, program slot, shelf, listing dialog, `?prg=`/`?file=` links |
 | `src/ui/` | From K-Prompt: audio, power switch, sound output, confirm dialog; `store.ts` (IndexedDB `ready-prompt`: shelf, tape, disk:n, cart, quick) |
 | `src/roms/` | BASIC 901226-01, KERNAL 901227-03, characters 901225-01 (see its README) |
@@ -81,6 +83,13 @@ Run `npx tsc --noEmit` and `npm test` before every commit.
   (not the keyboard buffer: tape I/O runs with interrupts off).
 - Traps run only when the KERNAL is mapped at E000h and no interrupt is
   due (`cpu.interruptPending`); they return with `cpu.returnFromTrap`.
+- Disks: traps on LISTEN ED0Ch, TALK ED09h, SECOND EDB9h, TKSA EDC7h,
+  CIOUT EDDDh, ACPTR EE13h, UNTLK EDEFh, UNLSN EDFEh (the KERNAL calls
+  these itself); the rest is the KERNAL's own code. A missing file reads
+  back as ST 42h (EOI + timeout), which the KERNAL turns into FILE NOT
+  FOUND. Drive 9 is on the bus only with a disk in it. Bytes sent to a
+  channel whose OPEN failed are dropped and the OPEN's error stays.
+- Directory lines: block count + (4 − digits) spaces (LIST adds one more).
 - Typing goes into the keyboard buffer (0277h, count C6h); both cases type
   plain letters (listings are upper case).
 

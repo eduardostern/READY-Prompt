@@ -595,3 +595,6 @@ kbd { font: 11px var(--mono); padding: 0 4px; border: 1px solid var(--line); bor
 .deck { display: flex; flex-direction: column; gap: 8px; }
 .device-name { grid-column: 1; font: 700 10px var(--mono); letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; min-width: 7ch; }
 .paste-dialog textarea { text-transform: none; }
+.disk:not(.full) .tape-keys button:not([id$="-blank"]), .disk.full [id$="-blank"] { display: none; }
+.drive-lamp { width: 7px; height: 7px; margin-left: 4px; vertical-align: 1px; }
+.drive-lamp.on { background: #e8473b; box-shadow: 0 0 6px #e8473b; }

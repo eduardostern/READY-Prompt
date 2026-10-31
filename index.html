@@ -93,6 +93,34 @@
                 <button type="button" class="eject" id="tape-eject" title="Eject">⏏</button>
               </div>
             </div>
+            <div class="tape disk" id="disk8">
+              <span class="device-name">Drive 8 <i class="lamp drive-lamp" id="lamp8" title="Drive light"></i></span>
+              <button class="cart" type="button" id="disk8-load" title="Insert a disk (.d64)">
+                <span class="cart-label" id="disk8-label">No disk: click or drop a .d64</span>
+              </button>
+              <span class="tape-pos" id="disk8-pos"></span>
+              <div class="tape-keys">
+                <button type="button" id="disk8-run" title="Reset, then LOAD&quot;*&quot;,8,1 and RUN">▶ LOAD</button>
+                <button type="button" id="disk8-dir" title="LOAD&quot;$&quot;,8 and LIST the directory">$</button>
+                <button type="button" id="disk8-save" title="Download the disk (with what was written to it) as .d64">⤓</button>
+                <button type="button" id="disk8-blank" title="Insert a blank, formatted disk">＋ Blank</button>
+                <button type="button" class="eject" id="disk8-eject" title="Eject">⏏</button>
+              </div>
+            </div>
+            <div class="tape disk" id="disk9">
+              <span class="device-name">Drive 9 <i class="lamp drive-lamp" id="lamp9" title="Drive light"></i></span>
+              <button class="cart" type="button" id="disk9-load" title="Insert a disk (.d64) in the second drive">
+                <span class="cart-label" id="disk9-label">No disk: click to insert one (drive 9 answers only with a disk in it)</span>
+              </button>
+              <span class="tape-pos" id="disk9-pos"></span>
+              <div class="tape-keys">
+                <button type="button" id="disk9-dir" title="LOAD&quot;$&quot;,9 and LIST the directory">$</button>
+                <button type="button" id="disk9-save" title="Download the disk as .d64">⤓</button>
+                <button type="button" id="disk9-blank" title="Insert a blank, formatted disk">＋ Blank</button>
+                <button type="button" class="eject" id="disk9-eject" title="Eject">⏏</button>
+              </div>
+            </div>
+            <input id="disk-file" type="file" accept=".d64,.zip" hidden />
             <input id="tape-file" type="file" accept=".tap,.t64,.zip" hidden />
             <input id="file" type="file" accept=".prg,.p00,.t64,.tap,.d64,.crt,.zip" hidden />
           </div>

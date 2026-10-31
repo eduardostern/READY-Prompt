@@ -18,8 +18,9 @@ import { audioContext } from './ui/audio';
 import { askConfirm } from './ui/confirm';
 import { waitForPower, warmUp } from './ui/power';
 import { SoundOut } from './ui/sound-out';
-import { loadShelf, loadTape, saveTape, shelve, type StoredFile, unshelve } from './ui/store';
+import { loadDisk, saveDisk, loadShelf, loadTape, saveTape, shelve, type StoredFile, unshelve } from './ui/store';
 import { Tape } from './c64/tape';
+import { D64, nameString } from './c64/disk';
 
 const SAMPLE_RATE = 44100;
 const MAX_FILE = 4 * 1024 * 1024;
@@ -391,12 +392,71 @@ async function start(): Promise<void> {
   }
   showTape();
 
+  // ---- the disk drives -------------------------------------------------------
+
+  /** Which drive the disk file picker is for. */
+  let diskTarget = 8;
+  const drive = (n: number) => c64.drives[n - 8];
+  const showDisks = () => {
+    for (const n of [8, 9]) {
+      const d = drive(n).disk;
+      $(`disk${n}`).classList.toggle('full', Boolean(d));
+      $(`disk${n}-label`).textContent = d
+        ? `${d.name} · "${nameString(d.diskName)}" · ${d.entries().length} files`
+        : n === 8 ? 'No disk: click or drop a .d64' : 'No disk: click to insert one (drive 9 answers only with a disk in it)';
+      $(`disk${n}-pos`).textContent = d ? `${d.blocksFree} free` : '';
+    }
+  };
+  const storeDisk = (n: number) => {
+    const d = drive(n).disk;
+    void saveDisk(n, d ? { name: d.name, data: d.data } : null);
+  };
+  const insertDisk = (n: number, d: D64 | null, store = true) => {
+    drive(n).insert(d);
+    if (store) storeDisk(n);
+    showDisks();
+  };
+  /** Reset, then LOAD"*",8,1 and RUN (the way the first program on a disk was started). */
+  const diskLoad = async () => {
+    if (!drive(8).disk) return;
+    if (running) c64.reset(); else await powerOn();
+    c64.whenReady(() => c64.type('LOAD"*",8,1\rRUN\r'));
+  };
+  const diskFile = $<HTMLInputElement>('disk-file');
+  diskFile.addEventListener('change', async () => {
+    const f = diskFile.files?.[0];
+    diskFile.value = '';
+    if (!f) return;
+    await open({ name: f.name, data: new Uint8Array(await f.arrayBuffer()) }, true, diskTarget);
+  });
+  for (const n of [8, 9]) {
+    $(`disk${n}-load`).addEventListener('click', () => { diskTarget = n; diskFile.click(); });
+    $(`disk${n}-dir`).addEventListener('click', async () => {
+      await ensureOn();
+      c64.type(`LOAD"$",${n}\rLIST\r`);
+    });
+    $(`disk${n}-save`).addEventListener('click', () => {
+      const d = drive(n).disk;
+      if (d) download(d.name.replace(/\.d64$/i, '') + '.d64', d.data);
+    });
+    $(`disk${n}-blank`).addEventListener('click', () => insertDisk(n, D64.blank()));
+    $(`disk${n}-eject`).addEventListener('click', () => { insertDisk(n, null); void showShelf(); });
+  }
+  $('disk8-run').addEventListener('click', () => void diskLoad());
+  for (const n of [8, 9]) {
+    const kept = await loadDisk(n);
+    if (kept) {
+      try { insertDisk(n, new D64(kept.data, kept.name), false); } catch { void saveDisk(n, null); }
+    }
+  }
+  showDisks();
+
   const shelfList = $('shelf-list');
   const showShelf = async () => {
     const all = await loadShelf();
     shelfList.replaceChildren(...all.map(f => {
       const li = document.createElement('li');
-      if (program?.name === f.name || c64.tape?.name === f.name) li.className = 'inserted';
+      if (program?.name === f.name || c64.tape?.name === f.name || c64.drives.some(d => d.disk?.name === f.name)) li.className = 'inserted';
       const pick = document.createElement('button');
       pick.className = 'shelf-cart';
       pick.type = 'button';
@@ -420,7 +480,7 @@ async function start(): Promise<void> {
   };
 
   /** Any file: a program, tape, disk or cartridge (also inside a .zip). */
-  const open = async (file: StoredFile, fromOutside = true) => {
+  const open = async (file: StoredFile, fromOutside = true, toDrive = 8) => {
     try {
       if (/\.zip$/i.test(file.name)) {
         const files = unzipSync(file.data);
@@ -436,6 +496,10 @@ async function start(): Promise<void> {
         showProgram();
         notice('');
         await runProgram(prg);
+      } else if (ext === 'd64') {
+        insertDisk(toDrive, new D64(file.data, file.name));
+        notice('');
+        if (toDrive === 8) await diskLoad();
       } else if (ext === 'tap' || ext === 't64') {
         insertTape(ext === 'tap' ? Tape.fromTap(file.data, file.name) : Tape.fromT64(file.data, file.name));
         notice('');
@@ -553,6 +617,11 @@ async function start(): Promise<void> {
       if (ran === most) owed = 0; // the host fell behind: do not try to catch up
     }
     if (ran) draw();
+    for (const n of [8, 9]) {
+      const dr = drive(n);
+      if (dr.busy > 0) dr.busy = Math.max(0, dr.busy - ran);
+      $(`lamp${n}`).classList.toggle('on', dr.busy > 0);
+    }
     statFrames += ran;
     if (now - statTime >= 1000) {
       const f = (statFrames * 1000) / (now - statTime);
@@ -562,6 +631,10 @@ async function start(): Promise<void> {
       statTime = now;
       if (c64.tape?.dirty) { c64.tape.dirty = false; storeTape(); }
       showTape();
+      for (const n of [8, 9]) {
+        const d = drive(n).disk;
+        if (d?.dirty) { d.dirty = false; storeDisk(n); showDisks(); }
+      }
     }
   };
   requestAnimationFrame(loop);

@@ -14,6 +14,7 @@ import { KEYS, Matrix, type Key } from './keyboard';
 import { BASIC, CHAROM, cpuMap, IO, KERNAL, NONE, RAM, ROMH, ROML, vicChip } from './pla';
 import { Sid, type SidModel } from './sid';
 import { Tape } from './tape';
+import { Drive } from './drive';
 import { NTSC, PAL, Vic, type VicTiming } from './vic';
 
 export type Model = 'pal' | 'ntsc';
@@ -92,6 +93,11 @@ export class C64 {
   /** The motor runs (port bit 5 low as an output). */
   private motorOn = false;
 
+  /** Disk drives 8 and 9 on the serial bus (9 answers only with a disk in it). */
+  readonly drives = [new Drive(8), new Drive(9)];
+  /** The drive LISTEN or TALK last addressed (null: a real device, or none). */
+  private busDrive: Drive | null = null;
+
   /** KERNAL entry points handled here when the KERNAL is mapped in: address → handler. */
   private readonly trapAt = new Uint8Array(0x10000);
   private readonly traps = new Map<number, () => boolean>();
@@ -114,6 +120,19 @@ export class C64 {
     });
     this.addTrap(0xf4a5, () => this.loadTrap());
     this.addTrap(0xf5ed, () => this.saveTrap());
+    // The serial bus routines, for the virtual drives.
+    this.addTrap(0xed0c, () => this.busAddress(false));
+    this.addTrap(0xed09, () => this.busAddress(true));
+    this.addTrap(0xedb9, () => this.busCall(d => d.listening, d => d.second(this.cpu.a)));
+    this.addTrap(0xedc7, () => this.busCall(d => d.talking, d => d.tksa(this.cpu.a)));
+    this.addTrap(0xeddd, () => this.busCall(d => d.listening, d => d.ciout(this.cpu.a)));
+    this.addTrap(0xee13, () => this.busCall(d => d.talking, d => {
+      const [b, st] = d.acptr();
+      this.ram[0x90] |= st;
+      this.cpu.a = b; this.cpu.z = b ? 0 : 1; this.cpu.n = b >> 7;
+    }));
+    this.addTrap(0xedef, () => this.busCall(() => true, d => { d.untalk(); this.busDrive = null; }));
+    this.addTrap(0xedfe, () => this.busCall(() => true, d => { d.unlisten(); this.busDrive = null; }));
     this.reset(true);
   }
 
@@ -155,6 +174,8 @@ export class C64 {
     this.cia2.reset();
     this.cart?.reset?.();
     this.updateMode();
+    for (const d of this.drives) d.reset();
+    this.busDrive = null;
     this.typing = [];
     this.onReady = [];
     // The power line: 50 Hz for PAL machines, 60 for NTSC.
@@ -359,6 +380,35 @@ export class C64 {
     const type = this.ram[0xb9] & 1 ? 3 : 1;
     this.tape.record(type, start, this.ram.slice(start, end), this.fileName());
     this.ram[0x90] = 0;
+    this.cpu.c = 0;
+    this.cpu.returnFromTrap(a => this.ram[a]);
+    return true;
+  }
+
+  // ---- Disk traps ----
+
+  /** The drive for a device number, if it is on the bus. */
+  driveFor(device: number): Drive | null {
+    const d = this.drives.find(x => x.device === device);
+    return d && (d.device === 8 || d.disk) ? d : null;
+  }
+
+  /** LISTEN (ED0Ch) or TALK (ED09h) with the device in A. */
+  private busAddress(talk: boolean): boolean {
+    const d = this.driveFor(this.cpu.a & 0x1f);
+    this.busDrive = d;
+    if (!d) return false;
+    if (talk) d.talk(); else d.listen();
+    this.cpu.c = 0;
+    this.cpu.returnFromTrap(a => this.ram[a]);
+    return true;
+  }
+
+  /** A bus routine for the drive addressed, when it is in the right state. */
+  private busCall(ok: (d: Drive) => boolean, fn: (d: Drive) => void): boolean {
+    const d = this.busDrive;
+    if (!d || !ok(d)) return false;
+    fn(d);
     this.cpu.c = 0;
     this.cpu.returnFromTrap(a => this.ram[a]);
     return true;
