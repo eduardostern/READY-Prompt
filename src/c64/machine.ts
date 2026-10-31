@@ -12,7 +12,7 @@ import { Cpu6510 } from '../cpu6510';
 import { Cia } from './cia';
 import { KEYS, Matrix, type Key } from './keyboard';
 import { BASIC, CHAROM, cpuMap, IO, KERNAL, NONE, RAM, ROMH, ROML, vicChip } from './pla';
-import { Sid } from './sid';
+import { Sid, type SidModel } from './sid';
 import { NTSC, PAL, Vic, type VicTiming } from './vic';
 
 export type Model = 'pal' | 'ntsc';
@@ -49,7 +49,7 @@ export class C64 {
   readonly colorRam = new Uint8Array(0x400);
   readonly cpu: Cpu6510;
   readonly vic: Vic;
-  readonly sid = new Sid();
+  readonly sid = new Sid(CLOCK.pal);
   readonly cia1: Cia;
   readonly cia2: Cia;
   readonly keys = new Matrix();
@@ -105,8 +105,15 @@ export class C64 {
   setModel(m: Model): void {
     this.model = m;
     this.vic.setTiming(m === 'pal' ? PAL : NTSC);
+    this.sid.setClock(CLOCK[m]);
     this.reset(true);
   }
+
+  /** The SID chip: the 6581 of the first C64s or the C64C's 8580. */
+  setSidModel(m: SidModel): void { this.sid.model = m; }
+
+  /** The sound made since the last call (44.1 kHz). */
+  takeAudio(): Float32Array<ArrayBuffer> { return this.sid.takeSamples(); }
 
   get timing(): VicTiming { return this.vic.timing; }
   get clockHz(): number { return CLOCK[this.model]; }

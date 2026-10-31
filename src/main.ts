@@ -11,7 +11,10 @@ import { KeyInput } from './c64/keyboard';
 import { WIDTH } from './c64/vic';
 import { audioContext } from './ui/audio';
 import { waitForPower, warmUp } from './ui/power';
+import { SoundOut } from './ui/sound-out';
+import type { SidModel } from './c64/sid';
 
+const SAMPLE_RATE = 44100;
 const SETTINGS_KEY = 'ready-prompt.settings';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -27,16 +30,20 @@ interface Settings {
   flicker: boolean;
   humbar: boolean;
   autoPower: boolean;
+  volume: number;
+  sid: SidModel;
 }
 
 const DEFAULTS: Settings = {
   model: 'pal', speed: 1, smooth: false, scanlines: true, curve: true, flicker: false, humbar: false, autoPower: false,
+  volume: 70, sid: '6581',
 };
 
 function loadSettings(): Settings {
   try {
     const s = { ...DEFAULTS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}') };
     if (s.model !== 'pal' && s.model !== 'ntsc') s.model = 'pal';
+    if (s.sid !== '6581' && s.sid !== '8580') s.sid = '6581';
     return s;
   } catch {
     return { ...DEFAULTS };
@@ -62,6 +69,8 @@ async function start(): Promise<void> {
   const [basic, kernal, chargen] = await Promise.all([bytes(basicUrl), bytes(kernalUrl), bytes(chargenUrl)]);
   const c64 = new C64({ basic, kernal, chargen });
   if (settings.model !== 'pal') c64.setModel(settings.model);
+  c64.setSidModel(settings.sid);
+  const sound = new SoundOut(SAMPLE_RATE);
   const keys = new KeyInput(held => c64.setKeys(held));
   keys.onRestore = down => { c64.restore = down; };
 
@@ -110,6 +119,7 @@ async function start(): Promise<void> {
   const flags: (keyof Settings)[] = ['smooth', 'scanlines', 'curve', 'flicker', 'humbar'];
   const applyLook = () => {
     for (const f of flags) document.body.classList.toggle(f, Boolean(settings[f]));
+    sound.volume = settings.volume / 100;
   };
   const bindCheck = (id: string, key: keyof Settings) => {
     const box = $<HTMLInputElement>(id);
@@ -122,6 +132,12 @@ async function start(): Promise<void> {
   };
   for (const f of flags) bindCheck(f, f);
   bindCheck('auto-power', 'autoPower');
+  const volume = $<HTMLInputElement>('volume');
+  volume.value = String(settings.volume);
+  volume.addEventListener('input', () => { settings.volume = Number(volume.value); save(); applyLook(); });
+  const sid = $<HTMLSelectElement>('sid');
+  sid.value = settings.sid;
+  sid.addEventListener('change', () => { settings.sid = sid.value as SidModel; save(); c64.setSidModel(settings.sid); });
   const speed = $<HTMLSelectElement>('speed');
   speed.value = String(settings.speed);
   speed.addEventListener('change', () => { settings.speed = Number(speed.value); save(); });
@@ -194,6 +210,8 @@ async function start(): Promise<void> {
     while (owed >= FRAME_MS / settings.speed && ran < most) {
       owed -= FRAME_MS / settings.speed;
       c64.runFrame();
+      const samples = c64.takeAudio();
+      if (settings.speed === 1) sound.play(samples);
       ran++;
     }
     if (ran === most) owed = 0; // the host fell behind: do not try to catch up

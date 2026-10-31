@@ -33,7 +33,7 @@ Run `npx tsc --noEmit` and `npm test` before every commit.
 | `src/c64/pla.ts` | The 82S100's equations (`docs/pla.txt`) evaluated into `cpuMap` and `vicChip` |
 | `src/c64/vic.ts` | VIC-II 6569/6567R8, one cycle at a time: fetches, BA, border flip-flops, 8 pixels per cycle |
 | `src/c64/cia.ts` | 6526: timers with the start/load/interrupt pipeline, TOD, ICR |
-| `src/c64/sid.ts` | SID |
+| `src/c64/sid.ts` | SID 6581/8580: `advanceTo(cycle)` before each access; samples average sub-steps of ≤ 8 cycles; reSID's envelope (rate counter, exponential steps, ADSR bug); SVF filter; 6581 volume DC (digis) |
 | `src/c64/as65.ts` | Two-pass 6502 assembler on the CPU's opcode table (tests, built-in programs, AI board); `toPrg` |
 | `src/c64/keyboard.ts` | 8 × 8 matrix, PC keys by character, `KeyInput` |
 | `src/main.ts` | Page wiring, frame loop, keys |
@@ -62,6 +62,9 @@ Run `npx tsc --noEmit` and `npm test` before every commit.
 - With the vertical border never set (RSEL to 24 rows between lines 247
   and 251) top and bottom borders stay open and show the idle fetch
   (3FFFh, 39FFh with ECM) in black.
+- SID pitch = freq × clock / 2^24 (7493 is A4 on PAL); rate 0 attack is
+  255 steps of 9 cycles; OSC3 ($D41B) with noise is the games' random
+  number source.
 - KERNAL 02A6h = 1 on PAL, 0 on NTSC (it counts raster lines at boot).
 - Typing goes into the keyboard buffer (0277h, count C6h); both cases type
   plain letters (listings are upper case).

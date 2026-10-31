@@ -70,6 +70,17 @@
           <label class="check"><input type="checkbox" id="humbar" /> Hum bar</label>
           <button id="fullscreen" class="key-btn" type="button">⛶ Full screen</button>
 
+          <h2>Sound</h2>
+          <label class="field">Volume
+            <input id="volume" type="range" min="0" max="100" value="70" />
+          </label>
+          <label class="field">SID chip
+            <select id="sid">
+              <option value="6581">6581 (the first C64s, 1982)</option>
+              <option value="8580">8580 (the C64C, 1986)</option>
+            </select>
+          </label>
+
           <h2>Controls</h2>
           <p class="note">The keyboard types by character, as on a C64: <kbd>"</kbd> is SHIFT + 2, <kbd>@ * + :</kbd> are keys of their own.</p>
           <dl class="keys">
