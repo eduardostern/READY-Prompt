@@ -18,9 +18,10 @@ import { audioContext } from './ui/audio';
 import { askConfirm } from './ui/confirm';
 import { waitForPower, warmUp } from './ui/power';
 import { SoundOut } from './ui/sound-out';
-import { loadDisk, saveDisk, loadShelf, loadTape, saveTape, shelve, type StoredFile, unshelve } from './ui/store';
+import { loadCart, saveCart, loadDisk, saveDisk, loadShelf, loadTape, saveTape, shelve, type StoredFile, unshelve } from './ui/store';
 import { Tape } from './c64/tape';
 import { D64, nameString } from './c64/disk';
+import { cartridgeFromCrt, CRT_TYPES, type CrtCartridge } from './c64/cartridge';
 
 const SAMPLE_RATE = 44100;
 const MAX_FILE = 4 * 1024 * 1024;
@@ -392,6 +393,37 @@ async function start(): Promise<void> {
   }
   showTape();
 
+  // ---- the cartridge port ----------------------------------------------------
+
+  let cartFile: StoredFile | null = null;
+  const showCart = () => {
+    const cart = c64.cart as CrtCartridge | null;
+    $('cart').classList.toggle('full', Boolean(cart));
+    $('cart-label').textContent = cart ? `${cartFile?.name ?? ''}${cart.name ? ` · ${cart.name}` : ''}` : 'No cartridge: click or drop a .crt';
+    $('cart-type').textContent = cart ? CRT_TYPES[cart.type] ?? '' : '';
+  };
+  /** Plugs a cartridge in (or out); the C64 starts again, as it does with the power off and on. */
+  const plugCart = async (file: StoredFile | null, store = true) => {
+    c64.insert(file ? cartridgeFromCrt(file.data) : null);
+    cartFile = file;
+    if (store) void saveCart(file);
+    showCart();
+    if (running) c64.reset(true); else await powerOn();
+  };
+  const cartInput = $<HTMLInputElement>('cart-file');
+  $('cart-load').addEventListener('click', () => cartInput.click());
+  cartInput.addEventListener('change', () => {
+    const f = cartInput.files?.[0];
+    if (f) void readFile(f);
+    cartInput.value = '';
+  });
+  $('cart-eject').addEventListener('click', () => void plugCart(null).then(showShelf));
+  const keptCart = await loadCart();
+  if (keptCart) {
+    try { c64.insert(cartridgeFromCrt(keptCart.data)); cartFile = keptCart; c64.reset(true); } catch { void saveCart(null); }
+  }
+  showCart();
+
   // ---- the disk drives -------------------------------------------------------
 
   /** Which drive the disk file picker is for. */
@@ -456,7 +488,7 @@ async function start(): Promise<void> {
     const all = await loadShelf();
     shelfList.replaceChildren(...all.map(f => {
       const li = document.createElement('li');
-      if (program?.name === f.name || c64.tape?.name === f.name || c64.drives.some(d => d.disk?.name === f.name)) li.className = 'inserted';
+      if (program?.name === f.name || c64.tape?.name === f.name || c64.drives.some(d => d.disk?.name === f.name) || cartFile?.name === f.name) li.className = 'inserted';
       const pick = document.createElement('button');
       pick.className = 'shelf-cart';
       pick.type = 'button';
@@ -496,6 +528,9 @@ async function start(): Promise<void> {
         showProgram();
         notice('');
         await runProgram(prg);
+      } else if (ext === 'crt') {
+        await plugCart(file);
+        notice('');
       } else if (ext === 'd64') {
         insertDisk(toDrive, new D64(file.data, file.name));
         notice('');

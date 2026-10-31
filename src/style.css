@@ -598,3 +598,4 @@ kbd { font: 11px var(--mono); padding: 0 4px; border: 1px solid var(--line); bor
 .disk:not(.full) .tape-keys button:not([id$="-blank"]), .disk.full [id$="-blank"] { display: none; }
 .drive-lamp { width: 7px; height: 7px; margin-left: 4px; vertical-align: 1px; }
 .drive-lamp.on { background: #e8473b; box-shadow: 0 0 6px #e8473b; }
+.cartslot:not(.full) #cart-eject { display: none; }

@@ -39,6 +39,8 @@ export interface Cartridge {
   tick?(): void;
   irq?: boolean;
   nmi?: boolean;
+  /** Set by the machine: call it when GAME or EXROM change. */
+  changed?: () => void;
 }
 
 export interface Roms { basic: Uint8Array; kernal: Uint8Array; chargen: Uint8Array }
@@ -186,7 +188,9 @@ export class C64 {
 
   /** Plugs in (or pulls out) a cartridge; the caller resets. */
   insert(cart: Cartridge | null): void {
+    if (this.cart) this.cart.changed = undefined;
     this.cart = cart;
+    if (cart) cart.changed = () => this.updateMode();
     this.updateMode();
   }
 

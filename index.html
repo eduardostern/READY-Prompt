@@ -78,6 +78,17 @@
               </div>
               <p class="note tape-note" id="deck-note"></p>
             </div>
+            <div class="tape cartslot" id="cart">
+              <span class="device-name">Cartridge</span>
+              <button class="cart" type="button" id="cart-load" title="Plug in a cartridge (.crt); the C64 restarts with it">
+                <span class="cart-label" id="cart-label">No cartridge: click or drop a .crt</span>
+              </button>
+              <span class="tape-pos" id="cart-type"></span>
+              <div class="tape-keys">
+                <button type="button" class="eject" id="cart-eject" title="Pull it out (the C64 restarts)">⏏</button>
+              </div>
+            </div>
+            <input id="cart-file" type="file" accept=".crt,.zip" hidden />
             <div class="tape" id="tape">
               <span class="device-name">Tape</span>
               <button class="cart" type="button" id="tape-load" title="Insert a tape (.tap, .t64)">

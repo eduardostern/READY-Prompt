@@ -41,6 +41,7 @@ Run `npx tsc --noEmit` and `npm test` before every commit.
 | `src/c64/tape.ts` | `Tape`: pulse timeline (.tap v0/v1, or .t64 files encoded as the KERNAL writes them), KERNAL-format files decoded with their pulse ranges; `record` for SAVE |
 | `src/c64/disk.ts` | `.d64` (35/40 tracks): BAM, directory, sector chains, 1541 allocation (nearest to track 18, interleave 10), scratch, rename, format |
 | `src/c64/drive.ts` | Virtual 1541 behind the KERNAL's bus routines: channels, LOAD/SAVE, `$` as a BASIC program at 0401h, ,S,R/,P,W/,S,A, @0:, channel 15 (I N S R V, error message) |
+| `src/c64/cartridge.ts` | `.crt`: normal 8K/16K/Ultimax, Simons' BASIC, Ocean, Fun Play, System 3, Dinamic, Magic Desk, EasyFlash (RAM at DF00h, flash read-only); `makeCrt` builds one |
 | `src/main.ts` | Page wiring, frame loop, keys, joystick (arrows + Right Ctrl), gamepad, program slot, shelf, listing dialog, `?prg=`/`?file=` links |
 | `src/ui/` | From K-Prompt: audio, power switch, sound output, confirm dialog; `store.ts` (IndexedDB `ready-prompt`: shelf, tape, disk:n, cart, quick) |
 | `src/roms/` | BASIC 901226-01, KERNAL 901227-03, characters 901225-01 (see its README) |
@@ -90,6 +91,10 @@ Run `npx tsc --noEmit` and `npm test` before every commit.
   FOUND. Drive 9 is on the bus only with a disk in it. Bytes sent to a
   channel whose OPEN failed are dropped and the OPEN's error stays.
 - Directory lines: block count + (4 − digits) spaces (LIST adds one more).
+- Cartridges set GAME/EXROM through `cart.changed` (the machine re-reads
+  its PLA mode). The KERNAL starts a cartridge with "CBM80" at 8004h;
+  an Ultimax one (EasyFlash boots so) starts from its own reset vector
+  in ROMH. Code that leaves Ultimax must run from RAM.
 - Typing goes into the keyboard buffer (0277h, count C6h); both cases type
   plain letters (listings are upper case).
 
