@@ -1,5 +1,5 @@
 /**
- * Ok-Prompt Worker (from A-Prompt): serves the static site and relays the modem cartridge's
+ * READY-Prompt Worker (from A-Prompt, by way of Ok-Prompt and K-Prompt): serves the static site and relays the modem cartridge's
  * telnet sessions. Browsers cannot open TCP sockets, so the modem opens a
  * WebSocket to /relay?host=H&port=P and this Worker connects to the BBS.
  *

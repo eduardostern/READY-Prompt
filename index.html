@@ -187,6 +187,15 @@
           </label>
           <p class="note">With a joystick plugged in, the arrow keys and Right Ctrl (fire) are the stick.</p>
           <p class="note" id="gamepad">No gamepad. Plug one in and press a button.</p>
+          <h2>Modem</h2>
+          <label class="check"><input type="checkbox" id="swiftlink" /> SwiftLink modem in the cartridge port</label>
+          <dl class="readout">
+            <dt>Carrier</dt><dd><i id="carrier" class="lamp"></i></dd>
+          </dl>
+          <p class="note">A Hayes modem on a SwiftLink (a 6551 at $DE00, NMI), the cartridge the 1990s
+            terminals used: CCGMS, Novaterm. It dials telnet BBSes: <kbd>ATI</kbd> lists them,
+            <kbd>ATDT 1</kbd> dials the first. Commodore boards (PETSCII) are marked; a C64 prints them as they come.</p>
+
           <p class="note">The keyboard types by character, as on a C64: <kbd>"</kbd> is SHIFT + 2, <kbd>@ * + :</kbd> are keys of their own.</p>
           <dl class="keys">
             <dt>Esc</dt><dd>RUN/STOP</dd>

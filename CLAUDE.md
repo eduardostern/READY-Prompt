@@ -43,8 +43,11 @@ Run `npx tsc --noEmit` and `npm test` before every commit.
 | `src/c64/drive.ts` | Virtual 1541 behind the KERNAL's bus routines: channels, LOAD/SAVE, `$` as a BASIC program at 0401h, ,S,R/,P,W/,S,A, @0:, channel 15 (I N S R V, error message) |
 | `src/c64/cartridge.ts` | `.crt`: normal 8K/16K/Ultimax, Simons' BASIC, Ocean, Fun Play, System 3, Dinamic, Magic Desk, EasyFlash (RAM at DF00h, flash read-only); `makeCrt` builds one |
 | `src/c64/state.ts` | Save states: `grab`/`put` each chip's plain data (skip lists leave out wiring, ROMs, the frame); `.rdy` = magic + deflated JSON; `Rewind` (a state a second, 30 kept) |
+| `src/c64/swiftlink.ts` | SwiftLink: 6551 at DE00h-DE03h, NMI on receive, doubled baud table (15 = 38400), bytes paced at the baud rate and held until read |
+| `src/c64/modem.ts` | K-Prompt's Hayes modem with telnet (same code in all the siblings) |
+| `src/phonebook.ts`, `worker/` | BBSes the relay may reach (`petscii` marks Commodore boards); the Worker's `/relay` WebSocket-to-telnet |
 | `src/main.ts` | Page wiring, frame loop, keys, joystick (arrows + Right Ctrl), gamepad, program slot, shelf, listing dialog, `?prg=`/`?file=` links |
-| `src/ui/` | From K-Prompt: audio, power switch, sound output, confirm dialog; `store.ts` (IndexedDB `ready-prompt`: shelf, tape, disk:n, cart, quick) |
+| `src/ui/` | From K-Prompt: audio, power switch, sound output, confirm dialog, call sound, modem audio; `modem-line.ts` (from Ok-Prompt: gateway, else relay); `store.ts` (IndexedDB `ready-prompt`: shelf, tape, disk:n, cart, quick) |
 | `src/roms/` | BASIC 901226-01, KERNAL 901227-03, characters 901225-01 (see its README) |
 
 ## C64 facts that are easy to get wrong
@@ -101,6 +104,9 @@ Run `npx tsc --noEmit` and `npm test` before every commit.
   new field holding wiring or a reference goes in `SKIP` (state.ts).
 - Hotkeys are F9 (quick save), F10 (quick load), PgDn (rewind): F1-F8
   are the C64's own keys, PgUp is RESTORE.
+- The SwiftLink sits at DE00h beside the cartridge (as on a port
+  expander), but Ocean/Magic Desk/EasyFlash also use DE00h: it is off by
+  default and plugging in a cartridge takes it out.
 - Typing goes into the keyboard buffer (0277h, count C6h); both cases type
   plain letters (listings are upper case).
 

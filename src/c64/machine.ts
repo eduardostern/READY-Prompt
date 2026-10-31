@@ -15,6 +15,7 @@ import { BASIC, CHAROM, cpuMap, IO, KERNAL, NONE, RAM, ROMH, ROML, vicChip } fro
 import { Sid, type SidModel } from './sid';
 import { Tape } from './tape';
 import { Drive } from './drive';
+import type { SwiftLink } from './swiftlink';
 import { NTSC, PAL, Vic, type VicTiming } from './vic';
 
 export type Model = 'pal' | 'ntsc';
@@ -97,6 +98,8 @@ export class C64 {
 
   /** Disk drives 8 and 9 on the serial bus (9 answers only with a disk in it). */
   readonly drives = [new Drive(8), new Drive(9)];
+  /** The SwiftLink modem at DE00h-DE03h (beside any cartridge, as on a port expander). */
+  swiftlink: SwiftLink | null = null;
   /** The drive LISTEN or TALK last addressed (null: a real device, or none). */
   private busDrive: Drive | null = null;
 
@@ -148,6 +151,7 @@ export class C64 {
     this.model = m;
     this.vic.setTiming(m === 'pal' ? PAL : NTSC);
     this.sid.setClock(CLOCK[m]);
+    this.swiftlink?.setClock(CLOCK[m]);
     this.reset(true);
   }
 
@@ -177,6 +181,7 @@ export class C64 {
     this.cart?.reset?.();
     this.updateMode();
     for (const d of this.drives) d.reset();
+    this.swiftlink?.reset();
     this.busDrive = null;
     this.typing = [];
     this.onReady = [];
@@ -232,6 +237,7 @@ export class C64 {
     this.cia1.tick();
     this.cia2.tick();
     this.cart?.tick?.();
+    this.swiftlink?.tick();
     if (this.motorOn && this.tapePlay && this.tape && this.tape.tick()) this.cia1.flag();
     this.cycles++;
     if (this.cycles >= this.todNext) {
@@ -240,7 +246,7 @@ export class C64 {
       this.cia2.todTick(50);
     }
     this.cpu.irqLine = (this.vic.irq ? 1 : 0) | (this.cia1.irq ? 2 : 0) | (this.cart?.irq ? 4 : 0);
-    this.cpu.setNmi(this.cia2.irq || this.restore || !!this.cart?.nmi);
+    this.cpu.setNmi(this.cia2.irq || this.restore || !!this.cart?.nmi || !!this.swiftlink?.nmi);
   }
 
   private cpuRead(a: number): number {
@@ -293,7 +299,9 @@ export class C64 {
       case 8: case 9: case 10: case 11: return (this.vic.lastBus & 0xf0) | this.colorRam[a & 0x3ff];
       case 12: return this.cia1.read(a);
       case 13: return this.cia2.read(a);
-      case 14: return this.cart?.io1Read?.(a) ?? this.vic.lastBus;
+      case 14:
+        if (this.swiftlink && (a & 0xfffc) === 0xde00) return this.swiftlink.read(a);
+        return this.cart?.io1Read?.(a) ?? this.vic.lastBus;
       default: return this.cart?.io2Read?.(a) ?? this.vic.lastBus;
     }
   }
@@ -305,7 +313,10 @@ export class C64 {
       case 8: case 9: case 10: case 11: this.colorRam[a & 0x3ff] = v & 15; return;
       case 12: this.cia1.write(a, v); return;
       case 13: this.cia2.write(a, v); return;
-      case 14: this.cart?.io1Write?.(a, v); return;
+      case 14:
+        if (this.swiftlink && (a & 0xfffc) === 0xde00) { this.swiftlink.write(a, v); return; }
+        this.cart?.io1Write?.(a, v);
+        return;
       default: this.cart?.io2Write?.(a, v); return;
     }
   }

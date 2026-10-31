@@ -21,6 +21,9 @@ import { SoundOut } from './ui/sound-out';
 import { loadQuick, saveQuick, loadCart, saveCart, loadDisk, saveDisk, loadShelf, loadTape, saveTape, shelve, type StoredFile, unshelve } from './ui/store';
 import { Tape } from './c64/tape';
 import { D64, nameString } from './c64/disk';
+import { Modem } from './c64/modem';
+import { SwiftLink } from './c64/swiftlink';
+import { modemOptions } from './ui/modem-line';
 import { isState, loadState, Rewind, saveState } from './c64/state';
 import { cartridgeFromCrt, CRT_TYPES, type CrtCartridge } from './c64/cartridge';
 
@@ -48,11 +51,12 @@ interface Settings {
   keyboard: boolean;
   fastTape: boolean;
   turboTape: boolean;
+  swiftlink: boolean;
 }
 
 const DEFAULTS: Settings = {
   model: 'pal', speed: 1, smooth: false, scanlines: true, curve: true, flicker: false, humbar: false, autoPower: false,
-  volume: 70, sid: '6581', joystick: 2, keyboard: false, fastTape: true, turboTape: true,
+  volume: 70, sid: '6581', joystick: 2, keyboard: false, fastTape: true, turboTape: true, swiftlink: false,
 };
 
 function loadSettings(): Settings {
@@ -88,6 +92,13 @@ async function start(): Promise<void> {
   if (settings.model !== 'pal') c64.setModel(settings.model);
   c64.setSidModel(settings.sid);
   const sound = new SoundOut(SAMPLE_RATE);
+  // The modem, behind a SwiftLink when one is plugged in.
+  const lineOpts = modemOptions({ speaker: () => ({ on: modem.speaker !== 0, volume: modem.volume }) });
+  const modem: Modem = new Modem(lineOpts);
+  lineOpts.setup(modem);
+  const swiftlink = new SwiftLink(modem, c64.clockHz);
+  const applyModem = () => { c64.swiftlink = settings.swiftlink ? swiftlink : null; swiftlink.setClock(c64.clockHz); };
+  applyModem();
   // A state every second, the last 30, to step back through.
   const rewind = new Rewind();
   const keys = new KeyInput(held => c64.setKeys(held));
@@ -132,6 +143,7 @@ async function start(): Promise<void> {
     save();
     c64.setModel(settings.model);
     applyModel();
+    applyModem();
     if (!running) blank();
   });
 
@@ -154,6 +166,16 @@ async function start(): Promise<void> {
   bindCheck('auto-power', 'autoPower');
   bindCheck('fast-tape', 'fastTape');
   bindCheck('turbo-tape', 'turboTape');
+  const swiftBox = $<HTMLInputElement>('swiftlink');
+  const setSwiftlink = (on: boolean) => {
+    settings.swiftlink = on;
+    swiftBox.checked = on;
+    save();
+    if (!on) modem.hangup(false);
+    applyModem();
+  };
+  swiftBox.checked = settings.swiftlink;
+  swiftBox.addEventListener('change', () => setSwiftlink(swiftBox.checked));
   const volume = $<HTMLInputElement>('volume');
   volume.value = String(settings.volume);
   volume.addEventListener('input', () => { settings.volume = Number(volume.value); save(); applyLook(); });
@@ -415,6 +437,8 @@ async function start(): Promise<void> {
   /** Plugs a cartridge in (or out); the C64 starts again, as it does with the power off and on. */
   const plugCart = async (file: StoredFile | null, store = true) => {
     c64.insert(file ? cartridgeFromCrt(file.data) : null);
+    // One cartridge port: the game goes in where the SwiftLink was.
+    if (file && settings.swiftlink) { setSwiftlink(false); notice('The SwiftLink came out to make room for the cartridge.'); }
     cartFile = file;
     if (store) void saveCart(file);
     showCart();
@@ -667,6 +691,7 @@ async function start(): Promise<void> {
   let statFrames = 0;
   let statTime = last;
   const fps = $('fps');
+  const carrier = $('carrier');
   const mhz = $('mhz');
   const loop = (now: number) => {
     requestAnimationFrame(loop);
@@ -710,6 +735,7 @@ async function start(): Promise<void> {
       statTime = now;
       if (c64.tape?.dirty) { c64.tape.dirty = false; storeTape(); }
       showTape();
+      carrier.classList.toggle('on', modem.online);
       for (const n of [8, 9]) {
         const d = drive(n).disk;
         if (d?.dirty) { d.dirty = false; storeDisk(n); showDisks(); }

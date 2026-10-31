@@ -20,7 +20,7 @@ type Plain = Record<string, unknown>;
 /** Fields that are not state (wiring, ROMs, things rebuilt from the model). */
 const SKIP: Record<string, Set<string>> = {
   machine: new Set(['basic', 'kernal', 'chargen', 'trapAt', 'traps', 'onReady', 'cart', 'tape', 'drives', 'busDrive',
-    'keys', 'cpu', 'vic', 'sid', 'cia1', 'cia2', 'typing', 'restore', 'joy1', 'joy2', 'fastTape', 'tapePlay']),
+    'keys', 'cpu', 'vic', 'sid', 'cia1', 'cia2', 'swiftlink', 'typing', 'restore', 'joy1', 'joy2', 'fastTape', 'tapePlay']),
   cpu: new Set(['read', 'write']),
   vic: new Set(['read', 'frame', 'timing']),
   sid: new Set(['samples', 'sampleRate', 'model']),
