@@ -24,3 +24,13 @@ export function runUntil(c: C64, text: string, max = 300): string {
   }
   throw new Error(`"${text}" never appeared:\n${c.screenText()}`);
 }
+
+import { assemble } from '../src/c64/as65';
+
+/** Assembles `src` into the C64's RAM and calls it with SYS from BASIC. */
+export function sys(c: C64, src: string, frames = 5): void {
+  const a = assemble(src);
+  c.ram.set(a.bytes, a.origin);
+  c.type(`SYS ${a.origin}\n`);
+  c.run(frames);
+}

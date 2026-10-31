@@ -34,6 +34,7 @@ Run `npx tsc --noEmit` and `npm test` before every commit.
 | `src/c64/vic.ts` | VIC-II 6569/6567R8, one cycle at a time: fetches, BA, border flip-flops, 8 pixels per cycle |
 | `src/c64/cia.ts` | 6526: timers with the start/load/interrupt pipeline, TOD, ICR |
 | `src/c64/sid.ts` | SID |
+| `src/c64/as65.ts` | Two-pass 6502 assembler on the CPU's opcode table (tests, built-in programs, AI board); `toPrg` |
 | `src/c64/keyboard.ts` | 8 × 8 matrix, PC keys by character, `KeyInput` |
 | `src/main.ts` | Page wiring, frame loop, keys |
 | `src/ui/` | From K-Prompt: audio, power switch, sound output, confirm dialog |
@@ -58,13 +59,17 @@ Run `npx tsc --noEmit` and `npm test` before every commit.
 - CIA timer: latch N underflows every N + 1 cycles; a started timer counts
   from the third cycle after the write; the IRQ line follows one cycle
   after the ICR flag.
+- With the vertical border never set (RSEL to 24 rows between lines 247
+  and 251) top and bottom borders stay open and show the idle fetch
+  (3FFFh, 39FFh with ECM) in black.
 - KERNAL 02A6h = 1 on PAL, 0 on NTSC (it counts raster lines at boot).
 - Typing goes into the keyboard buffer (0277h, count C6h); both cases type
   plain letters (listings are upper case).
 
 ## Testing tips
 
-- `tests/helpers.ts`: `boot(model, frames)`, `runUntil(c, text)`;
+- `tests/helpers.ts`: `boot(model, frames)`, `runUntil(c, text)`, `sys(c, asm)`
+  (assemble into RAM and SYS it);
   `tests/png.ts` writes a frame as PNG to look at.
 - `tests/cpu.test.ts` runs 40 of Tom Harte's single-step tests per opcode
   (`tests/fixtures/harte6502.json.gz`, bus cycles included).
