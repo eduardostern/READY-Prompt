@@ -1,0 +1,337 @@
+/**
+ * The Commodore 64: a 6510, the VIC-II, the SID, two CIAs and the PLA.
+ *
+ * Time moves in CPU bus cycles: every access the CPU makes first runs one
+ * cycle of the rest of the machine (`clock`), the VIC's half before the
+ * CPU's; a read made while the VIC holds BA low waits, cycle after cycle,
+ * until the VIC lets go (writes never collide: the VIC takes the bus 3
+ * cycles after BA, and the 6510 never writes more than 3 times in a row).
+ */
+
+import { Cpu6510 } from '../cpu6510';
+import { Cia } from './cia';
+import { KEYS, Matrix, type Key } from './keyboard';
+import { BASIC, CHAROM, cpuMap, IO, KERNAL, NONE, RAM, ROMH, ROML, vicChip } from './pla';
+import { Sid } from './sid';
+import { NTSC, PAL, Vic, type VicTiming } from './vic';
+
+export type Model = 'pal' | 'ntsc';
+
+export const CLOCK: Record<Model, number> = { pal: 985248, ntsc: 1022727 };
+
+/** What a cartridge does on the expansion port. */
+export interface Cartridge {
+  /** Line levels: true = high (not pulled low). */
+  game: boolean;
+  exrom: boolean;
+  roml(addr: number): number;
+  romh(addr: number): number;
+  /** Writes into the ROML/ROMH areas (only seen in Ultimax mode, or by RAM carts). */
+  writeRom?(addr: number, v: number): void;
+  io1Read?(addr: number): number | undefined;
+  io1Write?(addr: number, v: number): void;
+  io2Read?(addr: number): number | undefined;
+  io2Write?(addr: number, v: number): void;
+  reset?(): void;
+  /** Called every cycle when present (the modem's ACIA, timers). */
+  tick?(): void;
+  irq?: boolean;
+  nmi?: boolean;
+}
+
+export interface Roms { basic: Uint8Array; kernal: Uint8Array; chargen: Uint8Array }
+
+/** Joystick bits as stored here (1 = pressed): up, down, left, right, fire. */
+export const JOY_UP = 1, JOY_DOWN = 2, JOY_LEFT = 4, JOY_RIGHT = 8, JOY_FIRE = 16;
+
+export class C64 {
+  readonly ram = new Uint8Array(0x10000);
+  readonly colorRam = new Uint8Array(0x400);
+  readonly cpu: Cpu6510;
+  readonly vic: Vic;
+  readonly sid = new Sid();
+  readonly cia1: Cia;
+  readonly cia2: Cia;
+  readonly keys = new Matrix();
+  basic: Uint8Array;
+  kernal: Uint8Array;
+  chargen: Uint8Array;
+  cart: Cartridge | null = null;
+  model: Model = 'pal';
+
+  /** Cycles since power-on. */
+  cycles = 0;
+  /** Joysticks in ports 1 and 2. */
+  joy1 = 0;
+  joy2 = 0;
+  /** RESTORE held. */
+  restore = false;
+
+  // The 6510's own port at 00h/01h.
+  private ddr = 0;
+  private data = 0;
+  /** PLA mode: LORAM | HIRAM<<1 | CHAREN<<2 | GAME<<3 | EXROM<<4. */
+  private mode = 31;
+
+  // Time of day: power line ticks.
+  private todPeriod = 0;
+  private todNext = 0;
+
+  /** Text waiting to be typed into the keyboard buffer. */
+  private typing: number[] = [];
+
+  /** Cassette: the play button is down (port bit 4 reads 0). */
+  tapeSense = false;
+
+  constructor(roms: Roms) {
+    this.basic = roms.basic;
+    this.kernal = roms.kernal;
+    this.chargen = roms.chargen;
+    this.cpu = new Cpu6510(a => this.cpuRead(a), (a, v) => this.cpuWrite(a, v));
+    this.vic = new Vic(PAL, a => this.vicRead(a));
+    this.cia1 = new Cia({
+      readA: out => out & ~this.keys.columns(this.cia1.pinsB) & ~this.joy2,
+      readB: out => out & ~this.keys.rows(this.cia1.pinsA) & ~this.joy1,
+    });
+    this.cia2 = new Cia({
+      // IEC: the C64 drives ATN/CLK/DATA through inverters (bits 3-5);
+      // with no other device the lines read back what it drives (bits 6-7).
+      readA: out => (out & 0x3f) | (out & 0x10 ? 0 : 0x40) | (out & 0x20 ? 0 : 0x80),
+      readB: out => out,
+    });
+    this.reset(true);
+  }
+
+  setModel(m: Model): void {
+    this.model = m;
+    this.vic.setTiming(m === 'pal' ? PAL : NTSC);
+    this.reset(true);
+  }
+
+  get timing(): VicTiming { return this.vic.timing; }
+  get clockHz(): number { return CLOCK[this.model]; }
+
+  /** Power-on (`cold`) clears RAM to the usual pattern; a reset keeps it. */
+  reset(cold = false): void {
+    if (cold) {
+      // RAM powers up in stripes: 64 bytes of 00h, 64 of FFh.
+      for (let a = 0; a < 0x10000; a++) this.ram[a] = a & 0x40 ? 0xff : 0x00;
+      for (let a = 0; a < 0x400; a++) this.colorRam[a] = (a * 7) & 15;
+    }
+    this.ddr = 0; this.data = 0;
+    this.updateMode();
+    this.vic.reset();
+    this.sid.reset();
+    this.cia1.reset();
+    this.cia2.reset();
+    this.cart?.reset?.();
+    this.updateMode();
+    this.typing = [];
+    // The power line: 50 Hz for PAL machines, 60 for NTSC.
+    this.todPeriod = Math.round(this.clockHz / (this.model === 'pal' ? 50 : 60));
+    this.todNext = this.cycles + this.todPeriod;
+    this.cpu.reset();
+  }
+
+  /** Plugs in (or pulls out) a cartridge; the caller resets. */
+  insert(cart: Cartridge | null): void {
+    this.cart = cart;
+    this.updateMode();
+  }
+
+  /** The cartridge changed GAME/EXROM (bank-switching carts call this). */
+  updateMode(): void {
+    const pins = (this.data | ~this.ddr) & 7;
+    const game = this.cart ? this.cart.game : true;
+    const exrom = this.cart ? this.cart.exrom : true;
+    this.mode = pins | (game ? 8 : 0) | (exrom ? 16 : 0);
+  }
+
+  /** The 6510 port as read at 01h. */
+  private portRead(): number {
+    // Bits 0-2 are pulled up, bit 4 is the cassette sense (0 = a button down),
+    // bit 5 the motor (pulled low when it is an input).
+    const inputs = 0x07 | (this.tapeSense ? 0 : 0x10);
+    return (this.data & this.ddr) | (inputs & ~this.ddr) & 0xff;
+  }
+
+  /** The cassette motor is on (port bit 5 low). */
+  get motor(): boolean {
+    return !(((this.data & this.ddr) | (~this.ddr & 0x20)) & 0x20) && !!(this.ddr & 0x20);
+  }
+
+  // ---- The bus ----
+
+  /** One cycle of everything but the CPU. */
+  private clock(): void {
+    this.vic.tick();
+    this.cia1.tick();
+    this.cia2.tick();
+    this.cart?.tick?.();
+    this.cycles++;
+    if (this.cycles >= this.todNext) {
+      this.todNext += this.todPeriod;
+      this.cia1.todTick(50);
+      this.cia2.todTick(50);
+    }
+    this.cpu.irqLine = (this.vic.irq ? 1 : 0) | (this.cia1.irq ? 2 : 0) | (this.cart?.irq ? 4 : 0);
+    this.cpu.setNmi(this.cia2.irq || this.restore || !!this.cart?.nmi);
+  }
+
+  private cpuRead(a: number): number {
+    this.clock();
+    while (this.vic.ba) this.clock();
+    return this.peek(a);
+  }
+
+  private cpuWrite(a: number, v: number): void {
+    this.clock();
+    this.poke(a, v);
+  }
+
+  /** What the CPU reads at `a` (with the side effects of reading I/O). */
+  peek(a: number): number {
+    if (a < 2) return a === 0 ? this.ddr : this.portRead();
+    switch (cpuMap[this.mode * 32 + (a >> 12) * 2]) {
+      case RAM: return this.ram[a];
+      case BASIC: return this.basic[a & 0x1fff];
+      case KERNAL: return this.kernal[a & 0x1fff];
+      case CHAROM: return this.chargen[a & 0x0fff];
+      case IO: return this.ioRead(a);
+      case ROML: return this.cart ? this.cart.roml(a) : this.vic.lastBus;
+      case ROMH: return this.cart ? this.cart.romh(a) : this.vic.lastBus;
+      default: return this.vic.lastBus;
+    }
+  }
+
+  poke(a: number, v: number): void {
+    if (a < 2) {
+      if (a === 0) this.ddr = v; else this.data = v;
+      this.ram[a] = this.vic.lastBus;
+      this.updateMode();
+      return;
+    }
+    switch (cpuMap[this.mode * 32 + (a >> 12) * 2 + 1]) {
+      case RAM: this.ram[a] = v; return;
+      case IO: this.ioWrite(a, v); return;
+      case ROML: case ROMH: this.cart?.writeRom?.(a, v); return;
+      case NONE: return;
+      default: this.ram[a] = v; return;
+    }
+  }
+
+  private ioRead(a: number): number {
+    switch ((a >> 8) & 0x0f) {
+      case 0: case 1: case 2: case 3: return this.vic.readReg(a);
+      case 4: case 5: case 6: case 7: this.sid.advanceTo(this.cycles); return this.sid.read(a);
+      case 8: case 9: case 10: case 11: return (this.vic.lastBus & 0xf0) | this.colorRam[a & 0x3ff];
+      case 12: return this.cia1.read(a);
+      case 13: return this.cia2.read(a);
+      case 14: return this.cart?.io1Read?.(a) ?? this.vic.lastBus;
+      default: return this.cart?.io2Read?.(a) ?? this.vic.lastBus;
+    }
+  }
+
+  private ioWrite(a: number, v: number): void {
+    switch ((a >> 8) & 0x0f) {
+      case 0: case 1: case 2: case 3: this.vic.writeReg(a, v); return;
+      case 4: case 5: case 6: case 7: this.sid.advanceTo(this.cycles); this.sid.write(a, v); return;
+      case 8: case 9: case 10: case 11: this.colorRam[a & 0x3ff] = v & 15; return;
+      case 12: this.cia1.write(a, v); return;
+      case 13: this.cia2.write(a, v); return;
+      case 14: this.cart?.io1Write?.(a, v); return;
+      default: this.cart?.io2Write?.(a, v); return;
+    }
+  }
+
+  /** The VIC's 14-bit address in the bank CIA2 picks; colour RAM on bits 8-11. */
+  private vicRead(addr: number): number {
+    const full = ((~this.cia2.pinsA & 3) << 14) | addr;
+    const game = this.cart ? this.cart.game : true;
+    const exrom = this.cart ? this.cart.exrom : true;
+    const chip = vicChip(game, exrom, !(full & 0x4000), !!(full & 0x2000), !!(full & 0x1000));
+    let v: number;
+    if (chip === CHAROM) v = this.chargen[full & 0x0fff];
+    else if (chip === ROMH) v = this.cart ? this.cart.romh(0xf000 | (full & 0x0fff)) : 0xff;
+    else v = this.ram[full];
+    return v | (this.colorRam[addr & 0x3ff] << 8);
+  }
+
+  // ---- Running ----
+
+  /** Runs until the VIC finishes the frame it is drawing. */
+  runFrame(): void {
+    const f = this.vic.frameCount;
+    while (this.vic.frameCount === f) this.cpu.step();
+    this.feedTyping();
+    this.sid.advanceTo(this.cycles);
+  }
+
+  /** Runs about `n` frames (for tests and fast-forward). */
+  run(frames: number): void {
+    for (let i = 0; i < frames; i++) this.runFrame();
+  }
+
+  setKeys(keys: Iterable<Key>): void { this.keys.set(keys); }
+
+  // ---- Typing ----
+
+  /** Types text as if from the keyboard (into the KERNAL's buffer). */
+  type(text: string): void {
+    for (const ch of text) {
+      const p = asciiToPetscii(ch);
+      if (p >= 0) this.typing.push(p);
+    }
+  }
+
+  get typingDone(): boolean { return this.typing.length === 0; }
+
+  /** Fills the keyboard buffer (0277h, count in C6h) whenever the KERNAL has emptied it. */
+  private feedTyping(): void {
+    if (!this.typing.length || this.ram[0xc6] !== 0) return;
+    const n = Math.min(this.typing.length, this.ram[0x289] || 10);
+    for (let i = 0; i < n; i++) this.ram[0x277 + i] = this.typing[i];
+    this.typing.splice(0, n);
+    this.ram[0xc6] = n;
+  }
+
+  /** The text screen as ASCII (25 lines of 40), read through the VIC's video matrix. */
+  screenText(): string {
+    const bank = (~this.cia2.pinsA & 3) << 14;
+    const vm = bank | ((this.vic.regs[0x18] & 0xf0) << 6);
+    const lines: string[] = [];
+    for (let r = 0; r < 25; r++) {
+      let s = '';
+      for (let c = 0; c < 40; c++) s += screenCodeToAscii(this.ram[(vm + r * 40 + c) & 0xffff]);
+      lines.push(s.trimEnd());
+    }
+    return lines.join('\n');
+  }
+}
+
+/** ASCII to PETSCII, as the keyboard would type it. */
+export function asciiToPetscii(ch: string): number {
+  if (ch === '\n' || ch === '\r') return 13;
+  const c = ch.charCodeAt(0);
+  // Listings are upper case: both cases type the plain (unshifted) letter.
+  if (c >= 0x61 && c <= 0x7a) return c - 0x20;
+  if (c >= 0x20 && c <= 0x5d) return c;
+  if (ch === '£') return 0x5c;
+  if (ch === '^') return 0x5e;
+  if (ch === '_') return 0x5f;
+  return -1;
+}
+
+/** Screen code (upper case set) to ASCII; reversed characters as plain. */
+export function screenCodeToAscii(code: number): string {
+  const c = code & 0x7f;
+  if (c === 0) return '@';
+  if (c <= 26) return String.fromCharCode(0x40 + c);
+  if (c === 28) return '£';
+  if (c === 30) return '^';
+  if (c === 31) return '_';
+  if (c < 64) return String.fromCharCode(c);
+  return ' ';
+}
+
+export { KEYS };

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <title>READY-Prompt · a Commodore 64 in your browser</title>
+    <meta name="description" content="READY-Prompt is a Commodore 64 emulator for the browser: BASIC V2, the VIC-II and the SID, tapes, disks and cartridges." />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <div class="room">
+      <header class="top">
+        <h1 class="brand">READY-Prompt<span class="cursor" aria-hidden="true"></span></h1>
+        <p class="tag">A Commodore 64 in your browser. Type, or drop a program, a tape, a disk or a cartridge.</p>
+      </header>
+
+      <main class="stage">
+        <!-- Left: the machine -->
+        <aside class="panel" aria-label="Machine">
+          <h2>Machine</h2>
+          <div class="btn-row">
+            <button id="power" class="key-btn power-btn" type="button" aria-pressed="false">⏻ Power</button>
+            <button id="reset" class="key-btn" type="button">↻ Reset</button>
+          </div>
+          <label class="field">Model
+            <select id="model">
+              <option value="pal">Commodore 64, PAL (Europe, 50 Hz)</option>
+              <option value="ntsc">Commodore 64, NTSC (America, 60 Hz)</option>
+            </select>
+          </label>
+          <label class="field">Speed
+            <select id="speed">
+              <option value="1">Normal</option>
+              <option value="2">2x</option>
+              <option value="4">4x</option>
+            </select>
+          </label>
+          <dl class="readout">
+            <dt>Frames</dt><dd id="fps">–</dd>
+            <dt>CPU</dt><dd id="mhz">–</dd>
+          </dl>
+          <label class="check"><input type="checkbox" id="auto-power" /> Power on by itself</label>
+        </aside>
+
+        <!-- Centre: the monitor -->
+        <section class="center">
+          <div class="monitor">
+            <div class="screen-wrap" id="screen-wrap">
+              <canvas id="screen" width="384" height="272" aria-label="Commodore 64 screen"></canvas>
+              <div class="crt-roll" aria-hidden="true"></div>
+              <div class="crt-flicker" aria-hidden="true"></div>
+              <div class="drop-hint" aria-hidden="true">Drop a program, tape, disk or cartridge to load it</div>
+            </div>
+            <div class="bezel-foot">
+              <span class="badge" id="badge">Commodore 64</span>
+              <span class="stripes" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+              <i id="power-lamp" class="lamp power-lamp" title="Power"></i>
+            </div>
+          </div>
+        </section>
+
+        <!-- Right: display, controls -->
+        <aside class="panel" aria-label="Settings">
+          <h2>Display</h2>
+          <label class="check"><input type="checkbox" id="smooth" /> Smooth pixels</label>
+          <label class="check"><input type="checkbox" id="scanlines" /> Scanlines</label>
+          <label class="check"><input type="checkbox" id="curve" /> Curved glass</label>
+          <label class="check"><input type="checkbox" id="flicker" /> Flicker</label>
+          <label class="check"><input type="checkbox" id="humbar" /> Hum bar</label>
+          <button id="fullscreen" class="key-btn" type="button">⛶ Full screen</button>
+
+          <h2>Controls</h2>
+          <p class="note">The keyboard types by character, as on a C64: <kbd>"</kbd> is SHIFT + 2, <kbd>@ * + :</kbd> are keys of their own.</p>
+          <dl class="keys">
+            <dt>Esc</dt><dd>RUN/STOP</dd>
+            <dt>PgUp</dt><dd>RESTORE</dd>
+            <dt>Home</dt><dd>CLR/HOME</dd>
+            <dt>Bksp</dt><dd>INST/DEL</dd>
+            <dt>Ctrl, Tab</dt><dd>CTRL</dd>
+            <dt>Alt</dt><dd>C=</dd>
+            <dt>F1–F8</dt><dd>F1–F8</dd>
+          </dl>
+        </aside>
+      </main>
+
+      <footer class="foot">
+        READY-Prompt · © 2026 Eduardo Stern ·
+        siblings: <a href="https://a-prompt.stern.workers.dev">A-Prompt</a> (CP/M),
+        <a href="https://ok-prompt.stern.workers.dev">Ok-Prompt</a> (MSX) and
+        <a href="https://k-prompt.stern.workers.dev">K-Prompt</a> (ZX Spectrum) ·
+        C64 ROMs © Commodore
+      </footer>
+    </div>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
